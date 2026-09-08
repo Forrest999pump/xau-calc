@@ -1,0 +1,1200 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark light">
+<title>XAUUSD Risk Calc — XM Ultra Low Micro</title>
+<style>
+/* ===== theme: dark default, light via prefers-color-scheme ===== */
+:root{
+  --bg:#0e1116; --bg2:#161b22; --bg3:#1d242e; --line:#2b333f;
+  --fg:#e8edf4; --fg2:#9aa7b8; --fg3:#6b7789;
+  --green:#25c26e; --green-d:#0f7a42; --red:#ff5252; --red-d:#8c1f1f;
+  --amber:#ffb020; --blue:#4a9eff;
+  --radius:12px;
+}
+@media (prefers-color-scheme: light){
+  :root{
+    --bg:#f4f6f9; --bg2:#ffffff; --bg3:#eaeef4; --line:#d3dae4;
+    --fg:#161b22; --fg2:#5a6675; --fg3:#8b97a6;
+    --green:#00954d; --green-d:#0f7a42; --red:#d92020; --red-d:#a31414;
+    --amber:#b57500; --blue:#0a68d8;
+  }
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+/* NOTE: do not use overflow-x:hidden on html/body — it breaks position:sticky
+   on the result bar. Horizontal overflow is prevented by the layout itself. */
+html,body{margin:0;padding:0;max-width:100%}
+body{
+  background:var(--bg); color:var(--fg);
+  font:15px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans Thai","Sarabun",Roboto,sans-serif;
+  padding-bottom:48px; max-width:520px; margin:0 auto;
+}
+h1{font-size:15px;margin:0;font-weight:600}
+.wrap{padding:0 10px}
+.card{background:var(--bg2);border:1px solid var(--line);border-radius:var(--radius);padding:10px;margin:10px 0;scroll-margin-top:var(--barH,150px)}
+.card h2{font-size:12px;margin:0 0 8px;color:var(--fg2);font-weight:600;letter-spacing:.02em;text-transform:none}
+.row{display:flex;gap:6px;align-items:center}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.muted{color:var(--fg2)}
+.small{font-size:11px}
+.xs{font-size:10px}
+.mono{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+
+/* ===== inputs ===== */
+label.fld{display:block;flex:1;min-width:0}
+label.fld > span{display:block;font-size:10px;color:var(--fg2);margin-bottom:2px}
+input[type=text],input[type=number],select{
+  width:100%;background:var(--bg3);color:var(--fg);border:1px solid var(--line);
+  border-radius:8px;padding:9px 8px;font-size:16px;font-variant-numeric:tabular-nums;
+  outline:none;min-width:0;scroll-margin-top:var(--barH,150px);
+}
+input:focus,select:focus{border-color:var(--blue)}
+input.bad{border-color:var(--red);background:rgba(255,82,82,.10)}
+button{
+  background:var(--bg3);color:var(--fg);border:1px solid var(--line);border-radius:8px;
+  padding:10px 6px;font-size:13px;cursor:pointer;font-family:inherit;
+  touch-action:manipulation;
+}
+button:active{filter:brightness(1.35)}
+button.on{background:var(--blue);border-color:var(--blue);color:#fff}
+button:disabled,input:disabled{opacity:.4;cursor:not-allowed;filter:none}
+.ctlDisabled{opacity:.4;pointer-events:none}
+.step{min-width:0;flex:1;font-variant-numeric:tabular-nums;font-size:12px;padding:10px 2px}
+.quick{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-top:6px}
+.seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:0;border-radius:0;flex:1;padding:11px 4px;font-size:11px;background:transparent}
+.seg button.on{background:var(--blue);color:#fff}
+
+/* ===== sticky result bar ===== */
+#bar{
+  position:sticky;top:0;z-index:50;background:var(--bg2);
+  border-bottom:1px solid var(--line);padding:8px 10px;
+  box-shadow:0 4px 14px rgba(0,0,0,.35);
+}
+#bar.warn{background:linear-gradient(0deg,var(--bg2),var(--bg2)),var(--red);
+  border-bottom-color:var(--red);box-shadow:0 0 0 2px var(--red) inset;}
+.barTop{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+#lotBig{font-size:30px;font-weight:800;line-height:1;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+#sideTag{font-size:12px;font-weight:700;padding:2px 6px;border-radius:5px}
+.tagLong{background:rgba(37,194,110,.18);color:var(--green)}
+.tagShort{background:rgba(255,82,82,.18);color:var(--red)}
+.barStats{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:6px}
+.stat{background:var(--bg3);border-radius:7px;padding:4px 5px;min-width:0}
+.stat b{display:block;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stat i{font-style:normal;font-size:9px;color:var(--fg2);display:block}
+.pos{color:var(--green)} .neg{color:var(--red)} .amb{color:var(--amber)}
+#warnBox{margin-top:6px;background:var(--red-d);color:#fff;border-radius:7px;padding:5px 7px;font-size:11px;line-height:1.35}
+#warnBox:empty{display:none}
+#testBanner{background:var(--red);color:#fff;padding:8px 10px;font-size:12px;font-weight:600}
+
+/* ===== side toggle ===== */
+#sideRow{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}
+#sideRow button{padding:13px 6px;font-size:16px;font-weight:800;letter-spacing:.04em}
+#btnLong.on{background:var(--green);border-color:var(--green);color:#04150c}
+#btnShort.on{background:var(--red);border-color:var(--red);color:#fff}
+
+/* ===== lot slider ===== */
+input[type=range]{width:100%;accent-color:var(--blue);height:34px;margin:2px 0}
+.lotCtl{display:grid;grid-template-columns:44px 1fr 44px;gap:6px;align-items:center}
+.lotCtl button{font-size:20px;font-weight:700;padding:8px 0}
+
+/* ===== ladder ===== */
+#ladder{position:relative;height:190px;margin:6px 0 2px}
+.lRail{position:absolute;left:50%;top:0;bottom:0;width:8px;margin-left:-4px;background:var(--bg3);border-radius:4px}
+.lFill{position:absolute;left:50%;width:8px;margin-left:-4px;border-radius:4px}
+.lMark{position:absolute;left:0;right:0;height:0;}
+.lMark .dot{position:absolute;left:50%;width:14px;height:14px;margin-left:-7px;margin-top:-7px;border-radius:50%;border:2px solid var(--bg2)}
+.lMark .lb{position:absolute;right:52%;transform:translateY(-50%);text-align:right;font-size:11px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.lMark .rb{position:absolute;left:52%;transform:translateY(-50%);text-align:left;font-size:11px;white-space:nowrap;font-variant-numeric:tabular-nums}
+
+/* ===== what-if table ===== */
+table{width:100%;border-collapse:collapse;font-size:12px;font-variant-numeric:tabular-nums}
+th{font-size:10px;color:var(--fg2);font-weight:600;text-align:right;padding:3px 2px}
+th:first-child{text-align:left}
+td{padding:7px 2px;text-align:right;border-top:1px solid var(--line)}
+td:first-child{text-align:left;font-weight:700}
+tr.cur{background:rgba(74,158,255,.14)}
+tbody tr{cursor:pointer}
+
+/* ===== settings ===== */
+details{background:var(--bg2);border:1px solid var(--line);border-radius:var(--radius);margin:10px 0}
+summary{padding:11px 10px;font-size:13px;font-weight:600;cursor:pointer;list-style:none}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"▾";float:right;color:var(--fg2)}
+details[open] summary::after{content:"▴"}
+.setBody{padding:0 10px 10px}
+.setGrid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.sep{height:1px;background:var(--line);margin:10px 0}
+#copyBtn{width:100%;padding:14px;font-size:15px;font-weight:700;background:var(--blue);border-color:var(--blue);color:#fff}
+#copyOut{width:100%;margin-top:6px;font-size:11px;padding:7px;background:var(--bg3);border:1px solid var(--line);border-radius:8px;color:var(--fg2);word-break:break-all;line-height:1.4}
+.foot{text-align:center;color:var(--fg3);font-size:10px;padding:14px 10px 0}
+</style>
+</head>
+<body>
+
+<div id="testBanner" style="display:none"></div>
+
+<!-- 1. sticky result bar -->
+<div id="bar">
+  <div class="barTop">
+    <span class="small muted">LOT</span>
+    <span id="lotBig" class="mono">0.10</span>
+    <span id="sideTag" class="tagLong">LONG</span>
+    <span id="symTag" class="small muted" style="margin-left:auto">GOLDm#</span>
+  </div>
+  <div class="barStats">
+    <div class="stat"><b id="sRisk" class="neg">-</b><i>เสี่ยง (SL)</i></div>
+    <div class="stat"><b id="sRiskPct" class="neg">-</b><i>% พอร์ต</i></div>
+    <div class="stat"><b id="sProfit" class="pos">-</b><i>กำไร (TP)</i></div>
+    <div class="stat"><b id="sRR">-</b><i>R:R</i></div>
+  </div>
+  <div class="barStats" style="grid-template-columns:1fr 1fr">
+    <div class="stat"><b id="sMargin">-</b><i>มาร์จิ้นที่ใช้</i></div>
+    <div class="stat"><b id="sMlevel">-</b><i>Margin level</i></div>
+  </div>
+  <div id="warnBox"></div>
+</div>
+
+<div class="wrap">
+
+  <!-- 2. LONG / SHORT -->
+  <div id="sideRow">
+    <button id="btnLong" class="on">LONG / ซื้อ</button>
+    <button id="btnShort">SHORT / ขาย</button>
+  </div>
+
+  <!-- 3. Entry / SL / TP -->
+  <div class="card">
+    <h2>ราคา</h2>
+    <div class="grid3">
+      <label class="fld"><span>Entry เข้า</span><input autocomplete="off" autocorrect="off" spellcheck="false" id="inEntry" type="text" inputmode="decimal"></label>
+      <label class="fld"><span id="lbSl">SL ตัดขาดทุน</span><input autocomplete="off" autocorrect="off" spellcheck="false" id="inSl" type="text" inputmode="decimal"></label>
+      <label class="fld"><span>TP ทำกำไร</span><input autocomplete="off" autocorrect="off" spellcheck="false" id="inTp" type="text" inputmode="decimal"></label>
+    </div>
+    <div class="grid3" style="margin-top:6px">
+      <div class="row"><button class="step" data-stp="entry:-1">−1</button><button class="step" data-stp="entry:-0.1">−.1</button><button class="step" data-stp="entry:0.1">+.1</button><button class="step" data-stp="entry:1">+1</button></div>
+      <div class="row"><button class="step" data-stp="sl:-1">−1</button><button class="step" data-stp="sl:-0.1">−.1</button><button class="step" data-stp="sl:0.1">+.1</button><button class="step" data-stp="sl:1">+1</button></div>
+      <div class="row"><button class="step" data-stp="tp:-1">−1</button><button class="step" data-stp="tp:-0.1">−.1</button><button class="step" data-stp="tp:0.1">+.1</button><button class="step" data-stp="tp:1">+1</button></div>
+    </div>
+    <div style="margin-top:8px" class="row">
+      <span class="xs muted" style="min-width:56px">โหมด SL</span>
+      <div class="seg" style="flex:1">
+        <button id="slModePrice" class="on">ราคา</button>
+        <button id="slModeDist">ระยะ $</button>
+      </div>
+      <span id="slDistInfo" class="xs muted mono" style="min-width:74px;text-align:right"></span>
+    </div>
+    <div class="quick">
+      <button data-rr="1">TP 1R</button><button data-rr="1.5">TP 1.5R</button>
+      <button data-rr="2">TP 2R</button><button data-rr="3">TP 3R</button>
+    </div>
+  </div>
+
+  <!-- 4. Lot -->
+  <div class="card">
+    <h2>ขนาดออเดอร์ (lot) — ขยับแล้ว SL จะเลื่อนเพื่อคุมความเสี่ยงเท่าเดิม</h2>
+    <div class="lotCtl">
+      <button id="lotMinus">−</button>
+      <input autocomplete="off" autocorrect="off" spellcheck="false" id="inLot" type="text" inputmode="decimal" style="text-align:center;font-weight:700">
+      <button id="lotPlus">+</button>
+    </div>
+    <input autocomplete="off" autocorrect="off" spellcheck="false" id="lotSlider" type="range" min="0.1" max="10" step="0.01" value="0.1">
+    <div class="row small muted" style="justify-content:space-between">
+      <span id="lotMinLbl" class="mono xs">0.10</span>
+      <span id="lotRiskLive" class="mono">เสี่ยงจริง −</span>
+      <span id="lotMaxLbl" class="mono xs">10</span>
+    </div>
+  </div>
+
+  <!-- 5. Risk -->
+  <div class="card">
+    <h2>ความเสี่ยง</h2>
+    <div class="grid3">
+      <label class="fld"><span id="lbBal">พอร์ต (USD)</span><input autocomplete="off" autocorrect="off" spellcheck="false" id="inBal" type="text" inputmode="decimal"></label>
+      <label class="fld"><span>เสี่ยง %</span><input autocomplete="off" autocorrect="off" spellcheck="false" id="inRiskPct" type="text" inputmode="decimal"></label>
+      <label class="fld"><span id="lbRiskMoney">เสี่ยง (USD)</span><input autocomplete="off" autocorrect="off" spellcheck="false" id="inRiskMoney" type="text" inputmode="decimal"></label>
+    </div>
+    <div class="quick">
+      <button data-rp="0.5">0.5%</button><button data-rp="1">1%</button>
+      <button data-rp="2">2%</button><button data-rp="3">3%</button>
+    </div>
+  </div>
+
+  <!-- 6. price ladder -->
+  <div class="card">
+    <h2>แผนภาพราคา</h2>
+    <div id="ladder"><div class="lRail"></div></div>
+  </div>
+
+  <!-- 7. what-if -->
+  <div class="card">
+    <h2>ถ้าเปลี่ยน lot (แตะแถวเพื่อเลือก)</h2>
+    <div id="whatIfWrap" style="overflow-x:auto">
+      <table>
+        <thead><tr><th>lot</th><th>เสีย</th><th>ได้</th><th>% พอร์ต</th><th>margin</th></tr></thead>
+        <tbody id="whatIf"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 8. copy -->
+  <div class="card">
+    <button id="copyBtn">คัดลอกสรุปออเดอร์</button>
+    <div id="copyOut" class="mono"></div>
+  </div>
+
+  <!-- 9. settings -->
+  <details id="setBox">
+    <summary>ตั้งค่าโบรกเกอร์ / Calibrate</summary>
+    <div class="setBody">
+      <div class="setGrid">
+        <label class="fld"><span>Contract size (oz/lot)</span><input autocomplete="off" autocorrect="off" spellcheck="false" id="setCs" type="text" inputmode="decimal"></label>
+        <label class="fld"><span>Spread ($/oz)</span><input autocomplete="off" autocorrect="off" spellcheck="false" id="setSpread" type="text" inputmode="decimal"></label>
+        <label class="fld"><span>Min lot</span><input autocomplete="off" autocorrect="off" spellcheck="false" id="setMin" type="text" inputmode="decimal"></label>
+        <label class="fld"><span>Lot step</span><input autocomplete="off" autocorrect="off" spellcheck="false" id="setStep" type="text" inputmode="decimal"></label>
+        <label class="fld"><span>Max lot</span><input autocomplete="off" autocorrect="off" spellcheck="false" id="setMax" type="text" inputmode="decimal"></label>
+        <label class="fld"><span>Stop level ($)</span><input autocomplete="off" autocorrect="off" spellcheck="false" id="setStopLv" type="text" inputmode="decimal"></label>
+        <label class="fld"><span>Leverage 1:</span><input autocomplete="off" autocorrect="off" spellcheck="false" id="setLev" type="text" inputmode="decimal"></label>
+        <label class="fld"><span>Symbol</span><input autocomplete="off" autocorrect="off" spellcheck="false" id="setSym" type="text"></label>
+      </div>
+      <button id="btnReset" style="width:100%;margin-top:8px">รีเซ็ตเป็นค่า XM Ultra Low Micro</button>
+
+      <div class="sep"></div>
+      <h2 style="font-size:12px;margin:0 0 4px;color:var(--fg2)">Calibrate จากออเดอร์จริง</h2>
+      <div class="xs muted" style="margin-bottom:6px">กรอกออเดอร์ที่เปิดอยู่จริง 1 ไม้ แล้วดูว่า contract size ที่แท้จริงเป็นเท่าไหร่</div>
+      <div class="setGrid">
+        <label class="fld"><span>Lot</span><input autocomplete="off" autocorrect="off" spellcheck="false" id="cbLot" type="text" inputmode="decimal" value="0.5"></label>
+        <label class="fld"><span>ราคาเปิด</span><input autocomplete="off" autocorrect="off" spellcheck="false" id="cbOpen" type="text" inputmode="decimal" value="2400"></label>
+        <label class="fld"><span>ราคาปัจจุบัน</span><input autocomplete="off" autocorrect="off" spellcheck="false" id="cbNow" type="text" inputmode="decimal" value="2403"></label>
+        <label class="fld"><span id="lbCbPl">P/L ที่ MT แสดง (USD)</span><input autocomplete="off" autocorrect="off" spellcheck="false" id="cbPl" type="text" inputmode="decimal" value="1.5"></label>
+      </div>
+      <div id="cbOut" class="small mono" style="margin-top:8px;color:var(--fg2)"></div>
+      <button id="cbApply" style="width:100%;margin-top:6px">ใช้ค่านี้เป็น contract size</button>
+    </div>
+  </details>
+
+  <div class="foot">คำนวณและแสดงผลเป็น USD เสมอ · ไม่รวมค่าคอมมิชชั่น/สวอป</div>
+</div>
+
+<script>
+/* ============================================================
+   PART 1 — calc.js : pure functions, no DOM access
+   ============================================================ */
+var Calc = (function () {
+  'use strict';
+
+  var EPS = 1e-9;
+
+  function num(v, def) {
+    var n = typeof v === 'number' ? v : parseFloat(v);
+    return isFinite(n) ? n : (def === undefined ? NaN : def);
+  }
+
+  /* round to n decimals, killing float noise */
+  function r(v, d) {
+    var p = Math.pow(10, d === undefined ? 8 : d);
+    return Math.round(v * p) / p;
+  }
+
+  /* ---------- units ---------- */
+  /* unitFactor: kept for API compatibility with toUsd/fromUsd below.
+     App is USD-only (no cent unit), so this is always 1. */
+  function unitFactor(unit) { return 1; }
+  function toUsd(amountInUnit, unit) { return num(amountInUnit, 0) / unitFactor(unit); }
+  function fromUsd(amountUsd, unit) { return num(amountUsd, 0) * unitFactor(unit); }
+
+  /* ---------- lot helpers ---------- */
+  function roundLotDown(lot, lotStep) {
+    var step = num(lotStep, 0.01);
+    var l = num(lot, 0);
+    if (!(step > 0)) return l;
+    if (!isFinite(l) || l <= 0) return 0;
+    var n = Math.floor(l / step + 1e-9);
+    return r(n * step, 8);
+  }
+
+  function clampLot(lot, minLot, maxLot) {
+    var l = num(lot, 0);
+    var mn = num(minLot, 0), mx = num(maxLot, Infinity);
+    if (l < mn) l = mn;
+    if (l > mx) l = mx;
+    return r(l, 8);
+  }
+
+  /* floor to step then clamp into [minLot, maxLot] */
+  function normalizeLot(lot, lotStep, minLot, maxLot) {
+    return clampLot(roundLotDown(lot, lotStep), minLot, maxLot);
+  }
+
+  /* ---------- P/L, margin ---------- */
+  /* raw P/L in USD for a move from openPrice to closePrice, ignoring spread */
+  function pl(side, openPrice, closePrice, lot, contractSize) {
+    var d = num(closePrice, 0) - num(openPrice, 0);
+    if (String(side).toUpperCase() === 'SHORT') d = -d;
+    return r(d * num(lot, 0) * num(contractSize, 1), 10);
+  }
+
+  function computeMargin(entry, lot, contractSize, leverage) {
+    var lev = num(leverage, 1);
+    if (!(lev > 0)) return NaN;
+    return r(num(entry, 0) * num(lot, 0) * num(contractSize, 1) / lev, 10);
+  }
+
+  function marginLevel(balanceUsd, marginUsd) {
+    if (!(marginUsd > 0)) return Infinity;
+    return r(num(balanceUsd, 0) / marginUsd * 100, 6);
+  }
+
+  /* biggest lot the balance can afford as margin, floored to step */
+  function maxLotByMargin(balanceUsd, entry, contractSize, leverage, lotStep) {
+    var denom = num(entry, 0) * num(contractSize, 1);
+    if (!(denom > 0)) return 0;
+    var raw = num(balanceUsd, 0) * num(leverage, 1) / denom;
+    return roundLotDown(raw, lotStep);
+  }
+
+  /* ---------- core sizing ---------- */
+  /* effective SL distance in $/oz including spread cost */
+  function effSlDist(slDist, spread) {
+    return r(Math.max(0, num(slDist, 0)) + Math.max(0, num(spread, 0)), 10);
+  }
+
+  /*
+    computeLot: anchor = risk money (USD).
+    lotRaw = riskMoney / (effSlDist * contractSize)
+    lot    = floor to lotStep, clamped into [minLot, maxLot]
+  */
+  function computeLot(o) {
+    var riskMoney = num(o.riskMoney, 0);
+    var eff = effSlDist(o.slDist, o.spread);
+    var cs = num(o.contractSize, 1);
+    var minLot = num(o.minLot, 0.01), maxLot = num(o.maxLot, 100);
+    var step = num(o.lotStep, 0.01);
+    var res = {
+      effSlDist: eff, lotRaw: 0, lot: 0,
+      belowMin: false, aboveMax: false,
+      realRisk: 0, minRisk: 0
+    };
+    if (!(eff > 0) || !(cs > 0) || !(riskMoney > 0)) {
+      res.minRisk = r(minLot * eff * cs, 10);
+      return res;
+    }
+    var raw = riskMoney / (eff * cs);
+    res.lotRaw = r(raw, 10);
+    var floored = roundLotDown(raw, step);
+    res.belowMin = floored < minLot - EPS;
+    res.aboveMax = floored > maxLot + EPS;
+    res.lot = clampLot(floored, minLot, maxLot);
+    res.realRisk = r(res.lot * eff * cs, 10);
+    res.minRisk = r(minLot * eff * cs, 10);
+    return res;
+  }
+
+  /*
+    computeSlFromLot: user moved the lot -> move SL so risk money stays constant.
+    slDist = riskMoney/(lot*contractSize) - spread
+  */
+  function computeSlFromLot(o) {
+    var lot = num(o.lot, 0), cs = num(o.contractSize, 1);
+    var riskMoney = num(o.riskMoney, 0), spread = Math.max(0, num(o.spread, 0));
+    var entry = num(o.entry, 0);
+    var side = String(o.side || 'LONG').toUpperCase();
+    if (!(lot > 0) || !(cs > 0)) return { slDist: NaN, sl: NaN };
+    var dist = riskMoney / (lot * cs) - spread;
+    if (!(dist > 0)) dist = 0;
+    var sl = side === 'SHORT' ? entry + dist : entry - dist;
+    return { slDist: r(dist, 10), sl: r(sl, 10) };
+  }
+
+  /* SL price from a distance in $ */
+  function slFromDist(side, entry, slDist) {
+    var d = Math.abs(num(slDist, 0));
+    return String(side).toUpperCase() === 'SHORT'
+      ? r(num(entry, 0) + d, 10) : r(num(entry, 0) - d, 10);
+  }
+
+  /* TP price from R:R. tp = entry +/- (rr * effSlDist + spread) */
+  function computeTp(o) {
+    var entry = num(o.entry, 0);
+    var rr = num(o.rr, 0);
+    var eff = o.effSlDist !== undefined
+      ? num(o.effSlDist, 0) : effSlDist(o.slDist, o.spread);
+    var spread = Math.max(0, num(o.spread, 0));
+    var tpDist = rr * eff + spread; /* so the realised rr equals the requested rr */
+    return String(o.side).toUpperCase() === 'SHORT'
+      ? r(entry - tpDist, 10) : r(entry + tpDist, 10);
+  }
+
+  /* realised R:R from a TP price */
+  function computeRR(o) {
+    var tpDist = Math.abs(num(o.tp, 0) - num(o.entry, 0));
+    var spread = Math.max(0, num(o.spread, 0));
+    var eff = o.effSlDist !== undefined
+      ? num(o.effSlDist, 0) : effSlDist(o.slDist, o.spread);
+    if (!(eff > 0)) return NaN;
+    return r((tpDist - spread) / eff, 6);
+  }
+
+  function computeProfit(o) {
+    var tpDist = Math.abs(num(o.tp, 0) - num(o.entry, 0));
+    var spread = Math.max(0, num(o.spread, 0));
+    return r(num(o.lot, 0) * (tpDist - spread) * num(o.contractSize, 1), 10);
+  }
+
+  /* ---------- validation ---------- */
+  /* LONG: sl < entry < tp ; SHORT: tp < entry < sl */
+  function validateDirection(side, entry, sl, tp) {
+    var s = String(side).toUpperCase();
+    var e = num(entry, NaN), l = num(sl, NaN), t = num(tp, NaN);
+    var out = { slOk: true, tpOk: true, ok: true, msg: '' };
+    if (isFinite(e) && isFinite(l)) out.slOk = s === 'SHORT' ? l > e : l < e;
+    if (isFinite(e) && isFinite(t)) out.tpOk = s === 'SHORT' ? t < e : t > e;
+    out.ok = out.slOk && out.tpOk;
+    if (!out.slOk) out.msg = s === 'SHORT' ? 'ผิดทิศ: SHORT ต้องมี SL สูงกว่าราคาเข้า' : 'ผิดทิศ: LONG ต้องมี SL ต่ำกว่าราคาเข้า';
+    else if (!out.tpOk) out.msg = s === 'SHORT' ? 'ผิดทิศ: SHORT ต้องมี TP ต่ำกว่าราคาเข้า' : 'ผิดทิศ: LONG ต้องมี TP สูงกว่าราคาเข้า';
+    return out;
+  }
+
+  /* ---------- calibrate ---------- */
+  /* contractSize = |P/L in USD| / (|dPrice| * lot) */
+  function calibrateContractSize(o) {
+    var lot = num(o.lot, 0);
+    var dp = Math.abs(num(o.currentPrice, 0) - num(o.openPrice, 0));
+    var plUsd = Math.abs(num(o.plUsd, 0));
+    if (!(lot > 0) || !(dp > 0) || !(plUsd > 0)) return NaN;
+    return r(plUsd / (dp * lot), 6);
+  }
+
+  /* ---------- one-shot aggregate used by the UI ---------- */
+  function computeAll(s) {
+    var side = String(s.side || 'LONG').toUpperCase();
+    var cs = num(s.contractSize, 1);
+    var spread = Math.max(0, num(s.spread, 0));
+    var entry = num(s.entry, NaN);
+    var sl = num(s.sl, NaN);
+    var tp = num(s.tp, NaN);
+    var lot = num(s.lot, 0);
+    var balanceUsd = num(s.balanceUsd, 0);
+    var riskMoney = num(s.riskMoney, 0);
+
+    var slDist = (isFinite(entry) && isFinite(sl)) ? Math.abs(entry - sl) : NaN;
+    var eff = effSlDist(slDist, spread);
+    var tpDist = (isFinite(entry) && isFinite(tp)) ? Math.abs(tp - entry) : NaN;
+
+    var realRisk = r(lot * eff * cs, 10);
+    var profit = isFinite(tpDist) ? r(lot * (tpDist - spread) * cs, 10) : NaN;
+    var rr = (isFinite(tpDist) && eff > 0) ? r((tpDist - spread) / eff, 6) : NaN;
+    var margin = computeMargin(entry, lot, cs, s.leverage);
+    var mLevel = marginLevel(balanceUsd, margin);
+    var dir = validateDirection(side, entry, sl, tp);
+
+    var warns = [];
+    if (!dir.ok) warns.push(dir.msg);
+    if (lot < num(s.minLot, 0.01) - EPS) warns.push('lot ต่ำกว่าขั้นต่ำของโบรก');
+    if (isFinite(margin) && margin > balanceUsd + EPS) warns.push('มาร์จิ้นไม่พอ เปิดออเดอร์นี้ไม่ได้');
+    if (isFinite(slDist) && slDist < num(s.stopLevel, 0) - EPS) warns.push('ระยะ SL น้อยกว่า stop level ของโบรก');
+
+    return {
+      side: side, slDist: r(slDist, 10), effSlDist: eff, tpDist: r(tpDist, 10),
+      lot: lot, realRisk: realRisk,
+      riskPctReal: balanceUsd > 0 ? r(realRisk / balanceUsd * 100, 6) : NaN,
+      profit: profit, profitPct: balanceUsd > 0 ? r(profit / balanceUsd * 100, 6) : NaN,
+      rr: rr, margin: margin, marginLevel: mLevel,
+      minRisk: r(num(s.minLot, 0.01) * eff * cs, 10),
+      dir: dir, warnings: warns, riskMoney: riskMoney
+    };
+  }
+
+  /* ---------- defaults: XM Ultra Low Micro, GOLDm# ---------- */
+  var XM_DEFAULTS = {
+    symbol: 'GOLDm#', contractSize: 1, minLot: 0.1, lotStep: 0.01, maxLot: 100,
+    stopLevel: 0, spread: 0.03, leverage: 1000, unit: 'USD', digits: 2
+  };
+
+  /* ---------- self tests ---------- */
+  function runSelfTests() {
+    var results = [];
+    function ok(name, cond, got, want) { results.push({ name: name, pass: !!cond, got: got, want: want }); }
+    function near(a, b, tol) { return Math.abs(a - b) < (tol === undefined ? 1e-9 : tol); }
+
+    var t1 = pl('LONG', 2400, 2401, 1, 1);
+    ok('P/L LONG 1 lot 2400->2401 = +$1.00', near(t1, 1), t1, 1);
+
+    var t2 = pl('SHORT', 2400, 2402, 0.5, 1);
+    ok('P/L SHORT 0.5 lot 2400->2402 = -$1.00', near(t2, -1), t2, -1);
+
+    var t3 = computeMargin(2400, 1, 1, 1000);
+    ok('Margin 2400 x 1 lot / 1000 = $2.40', near(t3, 2.4), t3, 2.4);
+
+    var t4 = roundLotDown(1.98807, 0.01);
+    ok('roundLotDown(1.98807, 0.01) = 1.98', near(t4, 1.98), t4, 1.98);
+    var t4b = roundLotDown(0.129999, 0.01);
+    ok('roundLotDown(0.129999, 0.01) = 0.12', near(t4b, 0.12), t4b, 0.12);
+    var t4c = normalizeLot(0.03, 0.01, 0.1, 100);
+    ok('normalizeLot(0.03) clamps up to minLot 0.1', near(t4c, 0.1), t4c, 0.1);
+    var t4d = normalizeLot(250, 0.01, 0.1, 100);
+    ok('normalizeLot(250) clamps down to maxLot 100', near(t4d, 100), t4d, 100);
+
+    var t5 = computeLot({ riskMoney: 10, slDist: 5, spread: 0.03, contractSize: 1, lotStep: 0.01, minLot: 0.1, maxLot: 100 });
+    ok('computeLot risk $10 / slDist 5 / spread 0.03 = 1.98 lot', near(t5.lot, 1.98), t5.lot, 1.98);
+    ok('  effSlDist = 5.03', near(t5.effSlDist, 5.03), t5.effSlDist, 5.03);
+    ok('  realRisk = $9.9594', near(t5.realRisk, 9.9594, 1e-6), t5.realRisk, 9.9594);
+
+    var t5b = computeSlFromLot({ lot: 1.98, contractSize: 1, riskMoney: 9.9594, spread: 0.03, entry: 2400, side: 'LONG' });
+    ok('computeSlFromLot(1.98 lot) -> slDist 5', near(t5b.slDist, 5, 1e-6), t5b.slDist, 5);
+    ok('  SL price LONG entry 2400 -> 2395', near(t5b.sl, 2395, 1e-6), t5b.sl, 2395);
+    var t5c = computeSlFromLot({ lot: 1.98, contractSize: 1, riskMoney: 9.9594, spread: 0.03, entry: 2400, side: 'SHORT' });
+    ok('  SL price SHORT entry 2400 -> 2405', near(t5c.sl, 2405, 1e-6), t5c.sl, 2405);
+
+    ok('validate LONG 2390<2400<2420 ok', validateDirection('LONG', 2400, 2390, 2420).ok === true, true, true);
+    ok('validate LONG sl above entry fails', validateDirection('LONG', 2400, 2410, 2420).slOk === false, false, false);
+    ok('validate LONG tp below entry fails', validateDirection('LONG', 2400, 2390, 2390).tpOk === false, false, false);
+    ok('validate SHORT 2380<2400<2410 ok', validateDirection('SHORT', 2400, 2410, 2380).ok === true, true, true);
+    ok('validate SHORT sl below entry fails', validateDirection('SHORT', 2400, 2390, 2380).slOk === false, false, false);
+
+    var t7 = calibrateContractSize({ lot: 0.5, openPrice: 2400, currentPrice: 2403, plUsd: 1.5 });
+    ok('calibrate lot 0.5, 2400->2403, P/L $1.50 -> contractSize 1', near(t7, 1), t7, 1);
+    var t7b = calibrateContractSize({ lot: 0.5, openPrice: 2400, currentPrice: 2403, plUsd: 150 });
+    ok('calibrate P/L 150 USD -> contractSize 100', near(t7b, 100), t7b, 100);
+
+    var t8 = computeTp({ entry: 2400, side: 'LONG', rr: 2, slDist: 10, spread: 0.03 });
+    ok('computeTp LONG rr2 slDist10 -> 2420.09', near(t8, 2420.09, 1e-6), t8, 2420.09);
+    ok('  round-trip R:R = 2.0', near(computeRR({ entry: 2400, tp: t8, slDist: 10, spread: 0.03 }), 2, 1e-6), 2, 2);
+    var t8s = computeTp({ entry: 2400, side: 'SHORT', rr: 1.5, slDist: 10, spread: 0.03 });
+    ok('computeTp SHORT rr1.5', near(t8s, 2400 - (1.5 * 10.03 + 0.03), 1e-6), t8s, 2400 - (1.5 * 10.03 + 0.03));
+
+    var t9usd = toUsd(1, 'USD');
+    ok('toUsd(1, USD) is identity (app is USD-only, no cent conversion)', near(t9usd, 1), t9usd, 1);
+
+    var t10 = computeLot({ riskMoney: 50 * 0.02, slDist: 10, spread: 0.03, contractSize: 1, lotStep: 0.01, minLot: 0.1, maxLot: 100 });
+    ok('bal 50 USD risk 2% slDist10 -> belowMin, clamp 0.1', t10.belowMin === true && near(t10.lot, 0.1), t10.lot, 0.1);
+    ok('  minRisk at 0.1 lot = $1.003', near(t10.minRisk, 1.003), t10.minRisk, 1.003);
+
+    var t11 = maxLotByMargin(50, 2400, 1, 1000, 0.01);
+    ok('maxLotByMargin($50, 2400, 1:1000) = 20.83', near(t11, 20.83), t11, 20.83);
+
+    var t12 = computeAll({
+      side: 'LONG', entry: 2400, sl: 2390, tp: 2420, lot: 0.1, contractSize: 1,
+      spread: 0.03, leverage: 1000, balanceUsd: 50, riskMoney: 1,
+      minLot: 0.1, lotStep: 0.01, maxLot: 100, stopLevel: 0
+    });
+    ok('computeAll realRisk 0.1 lot = $1.003', near(t12.realRisk, 1.003), t12.realRisk, 1.003);
+    ok('computeAll profit 0.1 lot = $1.997', near(t12.profit, 1.997), t12.profit, 1.997);
+    ok('computeAll margin = $0.24', near(t12.margin, 0.24), t12.margin, 0.24);
+    ok('computeAll rr', near(t12.rr, (20 - 0.03) / 10.03, 1e-5), t12.rr, (20 - 0.03) / 10.03);
+
+    ok('XM_DEFAULTS internal unit stays USD (app is USD-only, no unit toggle)', XM_DEFAULTS.unit === 'USD', XM_DEFAULTS.unit, 'USD');
+
+    var failed = results.filter(function (x) { return !x.pass; });
+    return { total: results.length, failed: failed.length, results: results, ok: failed.length === 0 };
+  }
+
+  return {
+    num: num, round: r, unitFactor: unitFactor, toUsd: toUsd, fromUsd: fromUsd,
+    roundLotDown: roundLotDown, clampLot: clampLot, normalizeLot: normalizeLot,
+    pl: pl, computeMargin: computeMargin, marginLevel: marginLevel, maxLotByMargin: maxLotByMargin,
+    effSlDist: effSlDist, computeLot: computeLot, computeSlFromLot: computeSlFromLot,
+    slFromDist: slFromDist, computeTp: computeTp, computeRR: computeRR, computeProfit: computeProfit,
+    validateDirection: validateDirection, calibrateContractSize: calibrateContractSize,
+    computeAll: computeAll, XM_DEFAULTS: XM_DEFAULTS, runSelfTests: runSelfTests
+  };
+})();
+
+/* ============================================================
+   PART 2 — state.js : single state, single recalc()
+   ============================================================ */
+var LS_KEY = 'xauRiskCalc.v1';
+
+var state = {
+  side: 'LONG',
+  entry: 2400.00,
+  sl: 2395.00,
+  tp: 2410.00,
+  lot: 0.39,
+  slMode: 'price',     /* 'price' | 'dist' */
+  tpMode: 'price',     /* 'price' | 'rr'   */
+  rr: 2,
+  balance: 100,        /* in display unit */
+  riskPct: 2,
+  riskMoney: 2,        /* in display unit */
+  cfg: {
+    symbol: 'GOLDm#', contractSize: 1, minLot: 0.1, lotStep: 0.01, maxLot: 100,
+    stopLevel: 0, spread: 0.03, leverage: 1000, unit: 'USD', digits: 2
+  }
+};
+var view = {};        /* last computeAll() output */
+var testReport = null;
+
+function balUsd() { return Calc.toUsd(state.balance, state.cfg.unit); }
+function riskUsd() { return Calc.toUsd(state.riskMoney, state.cfg.unit); }
+
+/* SL distance in $ implied by the current prices */
+function slDistNow() {
+  var d = Math.abs(Calc.num(state.entry, 0) - Calc.num(state.sl, 0));
+  return isFinite(d) ? d : 0;
+}
+
+/* size the lot from the current SL, anchored on risk money */
+function sizeLotFromSl() {
+  var c = state.cfg;
+  var res = Calc.computeLot({
+    riskMoney: riskUsd(), slDist: slDistNow(), spread: c.spread,
+    contractSize: c.contractSize, lotStep: c.lotStep, minLot: c.minLot, maxLot: c.maxLot
+  });
+  state.lot = res.lot;
+  return res;
+}
+
+/* move SL so that the risk money stays constant for the current lot */
+function moveSlFromLot() {
+  var c = state.cfg;
+  var res = Calc.computeSlFromLot({
+    lot: state.lot, contractSize: c.contractSize, riskMoney: riskUsd(),
+    spread: c.spread, entry: state.entry, side: state.side
+  });
+  if (isFinite(res.sl)) state.sl = Calc.round(res.sl, c.digits);
+}
+
+function applyTpFromRR() {
+  var c = state.cfg;
+  state.tp = Calc.round(Calc.computeTp({
+    entry: state.entry, side: state.side, rr: state.rr,
+    slDist: slDistNow(), spread: c.spread
+  }), c.digits);
+}
+
+/*
+  Single entry point. lastEdited is one of:
+  side | entry | sl | slDist | tp | rr | lot | balance | riskPct | riskMoney | settings | init
+*/
+function recalc(lastEdited) {
+  var c = state.cfg;
+
+  switch (lastEdited) {
+    case 'balance':
+    case 'riskPct':
+      state.riskMoney = Calc.round(Calc.num(state.balance, 0) * Calc.num(state.riskPct, 0) / 100, 6);
+      sizeLotFromSl();
+      break;
+
+    case 'riskMoney':
+      state.riskPct = Calc.num(state.balance, 0) > 0
+        ? Calc.round(Calc.num(state.riskMoney, 0) / state.balance * 100, 4) : 0;
+      sizeLotFromSl();
+      break;
+
+    case 'side':
+      /* mirror SL/TP around entry so the new direction stays valid */
+      var e = Calc.num(state.entry, 0);
+      var dSl = Math.abs(e - Calc.num(state.sl, e));
+      var dTp = Math.abs(Calc.num(state.tp, e) - e);
+      state.sl = Calc.round(state.side === 'SHORT' ? e + dSl : e - dSl, c.digits);
+      state.tp = Calc.round(state.side === 'SHORT' ? e - dTp : e + dTp, c.digits);
+      sizeLotFromSl();
+      break;
+
+    case 'entry':
+      if (state.slMode === 'dist') {
+        state.sl = Calc.round(Calc.slFromDist(state.side, state.entry, state.slDistInput), c.digits);
+      }
+      if (state.tpMode === 'rr') applyTpFromRR();
+      sizeLotFromSl();
+      break;
+
+    case 'sl':
+      state.slMode = 'price';
+      if (state.tpMode === 'rr') applyTpFromRR();
+      sizeLotFromSl();
+      break;
+
+    case 'slDist':
+      state.sl = Calc.round(Calc.slFromDist(state.side, state.entry, state.slDistInput), c.digits);
+      if (state.tpMode === 'rr') applyTpFromRR();
+      sizeLotFromSl();
+      break;
+
+    case 'lot':
+      /* anchor = risk money -> SL moves, TP follows if in R:R mode */
+      state.lot = Calc.clampLot(Calc.roundLotDown(state.lot, c.lotStep), c.minLot, c.maxLot);
+      moveSlFromLot();
+      if (state.tpMode === 'rr') applyTpFromRR();
+      break;
+
+    case 'tp':
+      state.tpMode = 'price';
+      break;
+
+    case 'rr':
+      state.tpMode = 'rr';
+      applyTpFromRR();
+      break;
+
+    case 'settings':
+    case 'init':
+    default:
+      state.riskMoney = Calc.round(Calc.num(state.balance, 0) * Calc.num(state.riskPct, 0) / 100, 6);
+      sizeLotFromSl();
+      break;
+  }
+
+  /* keep the SL-distance mirror in sync for the "ระยะ $" input */
+  state.slDistInput = Calc.round(slDistNow(), c.digits);
+  if (state.tpMode === 'price') {
+    var rrNow = Calc.computeRR({ entry: state.entry, tp: state.tp, slDist: slDistNow(), spread: c.spread });
+    if (isFinite(rrNow)) state.rr = rrNow;
+  }
+
+  view = Calc.computeAll({
+    side: state.side, entry: state.entry, sl: state.sl, tp: state.tp, lot: state.lot,
+    contractSize: c.contractSize, spread: c.spread, leverage: c.leverage,
+    balanceUsd: balUsd(), riskMoney: riskUsd(),
+    minLot: c.minLot, lotStep: c.lotStep, maxLot: c.maxLot, stopLevel: c.stopLevel
+  });
+  save();
+}
+
+/* ---------- persistence ---------- */
+/* app is USD-only: 'unit' is never written to storage, and never read back
+   from it either (even from an older payload that still has one) — the
+   stored balance/risk numbers are always taken as USD as-is, no rescale. */
+function save() {
+  try {
+    var cfgToSave = {};
+    for (var k in state.cfg) {
+      if (k === 'unit') continue;
+      cfgToSave[k] = state.cfg[k];
+    }
+    localStorage.setItem(LS_KEY, JSON.stringify({
+      balance: state.balance, riskPct: state.riskPct, cfg: cfgToSave
+    }));
+  } catch (e) { /* private mode / blocked storage: ignore */ }
+}
+function load() {
+  try {
+    var raw = localStorage.getItem(LS_KEY);
+    if (!raw) return;
+    var o = JSON.parse(raw);
+    if (o && typeof o === 'object') {
+      if (isFinite(o.balance)) state.balance = o.balance;
+      if (isFinite(o.riskPct)) state.riskPct = o.riskPct;
+      if (o.cfg && typeof o.cfg === 'object') {
+        for (var k in state.cfg) {
+          if (k === 'unit') continue; /* ignore any saved unit from an older payload */
+          if (Object.prototype.hasOwnProperty.call(o.cfg, k) && o.cfg[k] !== null && o.cfg[k] !== undefined) {
+            state.cfg[k] = o.cfg[k];
+          }
+        }
+      }
+    }
+  } catch (e) { /* ignore corrupt storage */ }
+}
+
+/* ============================================================
+   PART 3 — ui.js : bind + render
+   ============================================================ */
+var $ = function (id) { return document.getElementById(id); };
+
+function nf(v, d) {
+  if (!isFinite(v)) return '-';
+  return Number(v).toFixed(d === undefined ? 2 : d);
+}
+function px(v) { return nf(v, state.cfg.digits); }
+
+/* money: always USD, "$" prefix, 2 decimals */
+function money(usd, withSign) {
+  if (!isFinite(usd)) return '-';
+  var sign = withSign ? (usd > 0 ? '+' : (usd < 0 ? '−' : '')) : (usd < 0 ? '−' : '');
+  var a = Math.abs(usd);
+  return sign + '$' + nf(a, 2);
+}
+/* plain ascii version for the copy string */
+function moneyAscii(usd, withSign) {
+  if (!isFinite(usd)) return '-';
+  var sign = usd < 0 ? '-' : (withSign ? '+' : '');
+  var a = Math.abs(usd);
+  return sign + '$' + nf(a, 2);
+}
+
+function setVal(el, v) { if (el && document.activeElement !== el) el.value = v; }
+
+/*
+  Safety gate: when the trade setup itself is not valid (wrong direction,
+  entry==sl, or a required price missing/NaN/<=0) a computed lot is
+  meaningless and must not be shown as if it were usable. This never
+  touches Calc — it only decides what render() displays.
+*/
+function isInvalidState() {
+  var e = Calc.num(state.entry, NaN);
+  var s = Calc.num(state.sl, NaN);
+  var t = Calc.num(state.tp, NaN);
+  if (!(isFinite(e) && e > 0)) return true;
+  if (!(isFinite(s) && s > 0)) return true;
+  if (!(isFinite(t) && t > 0)) return true;
+  return !view.dir.ok;
+}
+
+function render() {
+  var c = state.cfg, v = view;
+  var invalid = isInvalidState();
+
+  /* --- sticky bar --- */
+  $('lotBig').textContent = invalid ? '—' : nf(state.lot, 2);
+  var tag = $('sideTag');
+  tag.textContent = state.side;
+  tag.className = state.side === 'SHORT' ? 'tagShort' : 'tagLong';
+  $('symTag').textContent = c.symbol + ' · 1:' + nf(c.leverage, 0);
+  $('sRisk').textContent = invalid ? '—' : money(-v.realRisk);
+  $('sRiskPct').textContent = invalid ? '—' : (isFinite(v.riskPctReal) ? nf(v.riskPctReal, 2) + '%' : '-');
+  $('sProfit').textContent = invalid ? '—' : money(v.profit, true);
+  $('sRR').textContent = invalid ? '—' : (isFinite(v.rr) ? '1:' + nf(v.rr, 2) : '-');
+  $('sMargin').textContent = invalid ? '—' : money(v.margin);
+  var ml = $('sMlevel');
+  if (invalid) { ml.textContent = '—'; ml.className = ''; }
+  else if (!isFinite(v.marginLevel)) { ml.textContent = '∞'; ml.className = ''; }
+  else {
+    ml.textContent = nf(v.marginLevel, 0) + '%';
+    ml.className = v.marginLevel < 100 ? 'neg' : (v.marginLevel < 300 ? 'amb' : 'pos');
+  }
+  $('sProfit').className = invalid ? '' : ((isFinite(v.profit) && v.profit < 0) ? 'neg' : 'pos');
+
+  /* disable controls that only make sense for a valid, sized trade */
+  $('lotSlider').disabled = invalid;
+  $('lotMinus').disabled = invalid;
+  $('lotPlus').disabled = invalid;
+  $('copyBtn').disabled = invalid;
+  $('whatIfWrap').classList.toggle('ctlDisabled', invalid);
+
+  /* warnings */
+  var warns = v.warnings.slice();
+  if (v.warnings.indexOf('lot ต่ำกว่าขั้นต่ำของโบรก') >= 0 || state.lot <= c.minLot + 1e-9) {
+    var lr = Calc.computeLot({
+      riskMoney: riskUsd(), slDist: v.slDist, spread: c.spread, contractSize: c.contractSize,
+      lotStep: c.lotStep, minLot: c.minLot, maxLot: c.maxLot
+    });
+    if (lr.belowMin) {
+      warns.push('เสี่ยงน้อยสุดที่เปิดได้ (' + nf(c.minLot, 2) + ' lot) = ' + money(lr.minRisk));
+    }
+  }
+  $('warnBox').innerHTML = warns.map(function (w) { return '⚠ ' + w; }).join('<br>');
+  $('bar').className = warns.length ? 'warn' : '';
+  /* keep focused inputs clear of the sticky bar even when it grows with warning lines */
+  document.documentElement.style.setProperty('--barH', ($('bar').offsetHeight + 12) + 'px');
+
+  /* --- side --- */
+  $('btnLong').className = state.side === 'LONG' ? 'on' : '';
+  $('btnShort').className = state.side === 'SHORT' ? 'on' : '';
+
+  /* --- prices --- */
+  setVal($('inEntry'), px(state.entry));
+  if (state.slMode === 'dist') {
+    $('lbSl').textContent = 'SL ระยะ ($)';
+    setVal($('inSl'), nf(state.slDistInput, c.digits));
+  } else {
+    $('lbSl').textContent = 'SL ตัดขาดทุน';
+    setVal($('inSl'), px(state.sl));
+  }
+  setVal($('inTp'), px(state.tp));
+  $('inSl').className = v.dir.slOk ? '' : 'bad';
+  $('inTp').className = v.dir.tpOk ? '' : 'bad';
+  $('slModePrice').className = state.slMode === 'price' ? 'on' : '';
+  $('slModeDist').className = state.slMode === 'dist' ? 'on' : '';
+  $('slDistInfo').textContent = state.slMode === 'dist'
+    ? 'SL ' + px(state.sl)
+    : 'ระยะ ' + nf(v.slDist, 2) + '$';
+  Array.prototype.forEach.call(document.querySelectorAll('[data-rr]'), function (b) {
+    b.className = (state.tpMode === 'rr' && Math.abs(Calc.num(b.dataset.rr, 0) - state.rr) < 1e-9) ? 'on' : '';
+  });
+
+  /* --- lot --- */
+  setVal($('inLot'), nf(state.lot, 2));
+  var capMargin = Calc.maxLotByMargin(balUsd(), state.entry, c.contractSize, c.leverage, c.lotStep);
+  var sMax = Math.min(c.maxLot, capMargin > c.minLot ? capMargin : c.minLot * 10);
+  if (!(sMax > c.minLot)) sMax = c.minLot + c.lotStep * 10;
+  var sl = $('lotSlider');
+  sl.min = c.minLot; sl.max = Calc.round(sMax, 2); sl.step = c.lotStep;
+  if (document.activeElement !== sl) sl.value = Math.min(state.lot, sMax);
+  $('lotMinLbl').textContent = 'min ' + nf(c.minLot, 2);
+  $('lotMaxLbl').textContent = 'max ' + nf(sMax, 2);
+  $('lotRiskLive').innerHTML = 'เสี่ยงจริง <b class="neg">' + money(-v.realRisk) + '</b>';
+
+  /* --- risk --- */
+  $('lbBal').textContent = 'พอร์ต (USD)';
+  $('lbRiskMoney').textContent = 'เสี่ยง (USD)';
+  $('lbCbPl').textContent = 'P/L ที่ MT แสดง (USD)';
+  setVal($('inBal'), nf(state.balance, 2));
+  setVal($('inRiskPct'), nf(state.riskPct, 2));
+  setVal($('inRiskMoney'), nf(state.riskMoney, 2));
+  Array.prototype.forEach.call(document.querySelectorAll('[data-rp]'), function (b) {
+    b.className = Math.abs(Calc.num(b.dataset.rp, 0) - Calc.num(state.riskPct, -1)) < 1e-9 ? 'on' : '';
+  });
+
+  renderLadder();
+  renderWhatIf();
+  renderCopy();
+
+  /* --- settings --- */
+  setVal($('setCs'), String(c.contractSize));
+  setVal($('setSpread'), String(c.spread));
+  setVal($('setMin'), String(c.minLot));
+  setVal($('setStep'), String(c.lotStep));
+  setVal($('setMax'), String(c.maxLot));
+  setVal($('setStopLv'), String(c.stopLevel));
+  setVal($('setLev'), String(c.leverage));
+  setVal($('setSym'), String(c.symbol));
+}
+
+/* --- 6. vertical price ladder --- */
+function renderLadder() {
+  var box = $('ladder'), c = state.cfg, v = view;
+  box.innerHTML = '<div class="lRail"></div>';
+  var e = Calc.num(state.entry, NaN), s = Calc.num(state.sl, NaN), t = Calc.num(state.tp, NaN);
+  var pts = [];
+  if (isFinite(s)) pts.push(s); if (isFinite(e)) pts.push(e); if (isFinite(t)) pts.push(t);
+  if (pts.length < 2) return;
+  var lo = Math.min.apply(null, pts), hi = Math.max.apply(null, pts);
+  if (hi - lo < 1e-9) return;
+  var H = box.clientHeight || 190, pad = 14;
+  function y(p) { return pad + (hi - p) / (hi - lo) * (H - pad * 2); }
+
+  function fill(p1, p2, color) {
+    var a = y(p1), b = y(p2);
+    var d = document.createElement('div');
+    d.className = 'lFill';
+    d.style.top = Math.min(a, b) + 'px';
+    d.style.height = Math.abs(a - b) + 'px';
+    d.style.background = color;
+    box.appendChild(d);
+  }
+  if (isFinite(e) && isFinite(t)) fill(e, t, 'var(--green)');
+  if (isFinite(e) && isFinite(s)) fill(e, s, 'var(--red)');
+
+  function mark(p, color, left, right) {
+    var m = document.createElement('div');
+    m.className = 'lMark';
+    m.style.top = y(p) + 'px';
+    m.innerHTML = '<span class="dot" style="background:' + color + '"></span>' +
+      '<span class="lb" style="color:' + color + '">' + left + '</span>' +
+      '<span class="rb muted">' + right + '</span>';
+    box.appendChild(m);
+  }
+  if (isFinite(t)) mark(t, 'var(--green)', 'TP ' + px(t), money(v.profit, true));
+  if (isFinite(e)) mark(e, 'var(--blue)', 'Entry ' + px(e), nf(state.lot, 2) + ' lot');
+  if (isFinite(s)) mark(s, 'var(--red)', 'SL ' + px(s), money(-v.realRisk));
+}
+
+/* --- 7. what-if table --- */
+function renderWhatIf() {
+  var c = state.cfg, v = view, tb = $('whatIf');
+  tb.innerHTML = '';
+  var rows = [];
+  for (var i = -2; i <= 2; i++) {
+    var l = Calc.round(state.lot + i * c.lotStep, 8);
+    if (l < c.minLot - 1e-9 || l > c.maxLot + 1e-9) continue;
+    rows.push(Calc.round(l, 8));
+  }
+  rows.forEach(function (l) {
+    var risk = l * v.effSlDist * c.contractSize;
+    var prof = isFinite(v.tpDist) ? l * (v.tpDist - c.spread) * c.contractSize : NaN;
+    var mg = Calc.computeMargin(state.entry, l, c.contractSize, c.leverage);
+    var pct = balUsd() > 0 ? risk / balUsd() * 100 : NaN;
+    var tr = document.createElement('tr');
+    if (Math.abs(l - state.lot) < 1e-9) tr.className = 'cur';
+    tr.innerHTML = '<td>' + nf(l, 2) + '</td>' +
+      '<td class="neg">' + money(-risk) + '</td>' +
+      '<td class="pos">' + money(prof, true) + '</td>' +
+      '<td>' + (isFinite(pct) ? nf(pct, 2) + '%' : '-') + '</td>' +
+      '<td class="muted">' + money(mg) + '</td>';
+    tr.addEventListener('click', function () { state.lot = l; recalc('lot'); render(); });
+    tb.appendChild(tr);
+  });
+}
+
+/* --- 8. copy summary --- */
+function summaryText() {
+  var c = state.cfg, v = view;
+  return (state.side === 'SHORT' ? 'SELL' : 'BUY') + ' ' + c.symbol + ' ' + nf(state.lot, 2) +
+    ' @ ' + px(state.entry) +
+    ' | SL ' + px(state.sl) + ' (' + moneyAscii(-v.realRisk) +
+    (isFinite(v.riskPctReal) ? ', ' + nf(v.riskPctReal, 2) + '%' : '') + ')' +
+    ' | TP ' + px(state.tp) + ' (' + moneyAscii(v.profit, true) + ')' +
+    ' | RR 1:' + (isFinite(v.rr) ? nf(v.rr, 1) : '-');
+}
+function renderCopy() { $('copyOut').textContent = summaryText(); }
+
+/* ============================================================
+   bindings — handlers only set state + call recalc/render
+   ============================================================ */
+function bindNum(id, key, ev) {
+  var el = $(id);
+  el.addEventListener('input', function () {
+    var n = parseFloat(String(el.value).replace(/,/g, ''));
+    if (!isFinite(n)) { return; }
+    if (key) state[key] = n;
+    recalc(ev); render();
+  });
+  el.addEventListener('blur', function () { recalc(ev); render(); });
+}
+
+function initUI() {
+  /* side */
+  $('btnLong').addEventListener('click', function () { state.side = 'LONG'; recalc('side'); render(); });
+  $('btnShort').addEventListener('click', function () { state.side = 'SHORT'; recalc('side'); render(); });
+
+  /* prices */
+  bindNum('inEntry', 'entry', 'entry');
+  $('inSl').addEventListener('input', function () {
+    var n = parseFloat(String($('inSl').value).replace(/,/g, ''));
+    if (!isFinite(n)) return;
+    if (state.slMode === 'dist') { state.slDistInput = n; recalc('slDist'); }
+    else { state.sl = n; recalc('sl'); }
+    render();
+  });
+  $('inSl').addEventListener('blur', function () { recalc(state.slMode === 'dist' ? 'slDist' : 'sl'); render(); });
+  bindNum('inTp', 'tp', 'tp');
+
+  /* steppers */
+  Array.prototype.forEach.call(document.querySelectorAll('[data-stp]'), function (b) {
+    b.addEventListener('click', function () {
+      var p = b.dataset.stp.split(':'), f = p[0], d = parseFloat(p[1]);
+      if (f === 'sl' && state.slMode === 'dist') {
+        state.slDistInput = Calc.round(Calc.num(state.slDistInput, 0) + d, state.cfg.digits);
+        recalc('slDist');
+      } else {
+        state[f] = Calc.round(Calc.num(state[f], 0) + d, state.cfg.digits);
+        recalc(f);
+      }
+      render();
+    });
+  });
+
+  /* SL mode */
+  $('slModePrice').addEventListener('click', function () { state.slMode = 'price'; recalc('sl'); render(); });
+  $('slModeDist').addEventListener('click', function () {
+    state.slMode = 'dist';
+    state.slDistInput = Calc.round(slDistNow(), state.cfg.digits);
+    recalc('slDist'); render();
+  });
+
+  /* R:R quick buttons */
+  Array.prototype.forEach.call(document.querySelectorAll('[data-rr]'), function (b) {
+    b.addEventListener('click', function () { state.rr = Calc.num(b.dataset.rr, 2); recalc('rr'); render(); });
+  });
+
+  /* lot */
+  $('lotSlider').addEventListener('input', function () {
+    state.lot = Calc.num($('lotSlider').value, state.lot); recalc('lot'); render();
+  });
+  bindNum('inLot', 'lot', 'lot');
+  $('lotMinus').addEventListener('click', function () {
+    state.lot = Calc.round(state.lot - state.cfg.lotStep, 8); recalc('lot'); render();
+  });
+  $('lotPlus').addEventListener('click', function () {
+    state.lot = Calc.round(state.lot + state.cfg.lotStep, 8); recalc('lot'); render();
+  });
+
+  /* risk */
+  bindNum('inBal', 'balance', 'balance');
+  bindNum('inRiskPct', 'riskPct', 'riskPct');
+  bindNum('inRiskMoney', 'riskMoney', 'riskMoney');
+  Array.prototype.forEach.call(document.querySelectorAll('[data-rp]'), function (b) {
+    b.addEventListener('click', function () { state.riskPct = Calc.num(b.dataset.rp, 1); recalc('riskPct'); render(); });
+  });
+
+  /* copy */
+  $('copyBtn').addEventListener('click', function () {
+    var txt = summaryText(), done = function () {
+      $('copyBtn').textContent = 'คัดลอกแล้ว ✓';
+      setTimeout(function () { $('copyBtn').textContent = 'คัดลอกสรุปออเดอร์'; }, 1400);
+    };
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(txt).then(done, function () { legacyCopy(txt); done(); });
+      } else { legacyCopy(txt); done(); }
+    } catch (e) { legacyCopy(txt); done(); }
+  });
+
+  /* settings */
+  bindCfg('setCs', 'contractSize'); bindCfg('setSpread', 'spread');
+  bindCfg('setMin', 'minLot'); bindCfg('setStep', 'lotStep');
+  bindCfg('setMax', 'maxLot'); bindCfg('setStopLv', 'stopLevel');
+  bindCfg('setLev', 'leverage');
+  $('setSym').addEventListener('input', function () {
+    state.cfg.symbol = $('setSym').value || 'GOLDm#'; recalc('settings'); render();
+  });
+  $('btnReset').addEventListener('click', function () {
+    var d = Calc.XM_DEFAULTS;
+    for (var k in d) if (Object.prototype.hasOwnProperty.call(d, k)) state.cfg[k] = d[k];
+    recalc('settings'); render();
+  });
+
+  /* calibrate */
+  ['cbLot', 'cbOpen', 'cbNow', 'cbPl'].forEach(function (id) {
+    $(id).addEventListener('input', renderCalib);
+  });
+  $('cbApply').addEventListener('click', function () {
+    var cs = calibValue();
+    if (isFinite(cs) && cs > 0) { state.cfg.contractSize = cs; recalc('settings'); render(); renderCalib(); }
+  });
+}
+
+function legacyCopy(txt) {
+  var ta = document.createElement('textarea');
+  ta.value = txt; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); } catch (e) { }
+  document.body.removeChild(ta);
+}
+
+function bindCfg(id, key) {
+  var el = $(id);
+  el.addEventListener('input', function () {
+    var n = parseFloat(String(el.value).replace(/,/g, ''));
+    if (!isFinite(n)) return;
+    state.cfg[key] = n; recalc('settings'); render();
+  });
+  el.addEventListener('blur', function () { recalc('settings'); render(); });
+}
+
+function calibValue() {
+  return Calc.calibrateContractSize({
+    lot: parseFloat($('cbLot').value),
+    openPrice: parseFloat($('cbOpen').value),
+    currentPrice: parseFloat($('cbNow').value),
+    plUsd: Calc.toUsd(parseFloat($('cbPl').value), state.cfg.unit)
+  });
+}
+function renderCalib() {
+  var cs = calibValue();
+  $('cbOut').innerHTML = isFinite(cs)
+    ? 'contract size ที่คำนวณย้อนได้ = <b>' + nf(cs, 4) + '</b> oz/lot' +
+    (Math.abs(cs - state.cfg.contractSize) < 1e-6 ? ' <span class="pos">(ตรงกับที่ตั้งไว้)</span>' : ' <span class="amb">(ต่างจากที่ตั้งไว้ ' + nf(state.cfg.contractSize, 4) + ')</span>')
+    : 'กรอกให้ครบและราคาต้องต่างกัน';
+}
+
+/* ============================================================
+   boot
+   ============================================================ */
+(function boot() {
+  testReport = Calc.runSelfTests();
+  if (!testReport.ok) {
+    var b = $('testBanner');
+    b.style.display = 'block';
+    b.textContent = '⚠ SELF-TEST ไม่ผ่าน ' + testReport.failed + '/' + testReport.total +
+      ' ข้อ: ' + testReport.results.filter(function (x) { return !x.pass; })
+        .map(function (x) { return x.name; }).join(' · ') + ' — อย่าเชื่อตัวเลขบนหน้านี้';
+  }
+  load();
+  initUI();
+  recalc('init');
+  render();
+  renderCalib();
+  /* debug hooks (also used by the browser verification pass) */
+  window.__tests = testReport;
+  window.__get = function () { return { state: state, view: view }; };
+})();
+</script>
+</body>
+</html>
