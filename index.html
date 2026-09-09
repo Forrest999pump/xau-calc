@@ -132,9 +132,50 @@ details[open] summary::after{content:"▴"}
 .setBody{padding:0 10px 10px}
 .setGrid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .sep{height:1px;background:var(--line);margin:10px 0}
-#copyBtn{width:100%;padding:14px;font-size:15px;font-weight:700;background:var(--blue);border-color:var(--blue);color:#fff}
+.actRow{display:flex;gap:6px}
+#copyBtn{flex:1.5;min-width:0;padding:14px 4px;font-size:14px;font-weight:700;background:var(--blue);border-color:var(--blue);color:#fff;white-space:nowrap}
+#jSnapBtn{flex:1;min-width:0;padding:14px 4px;font-size:14px;font-weight:700;white-space:nowrap}
 #copyOut{width:100%;margin-top:6px;font-size:11px;padding:7px;background:var(--bg3);border:1px solid var(--line);border-radius:8px;color:var(--fg2);word-break:break-all;line-height:1.4}
 .foot{text-align:center;color:var(--fg3);font-size:10px;padding:14px 10px 0}
+
+/* ===== journal (phase 2c) ===== */
+/* author display rules below would otherwise beat the UA [hidden] rule */
+[hidden]{display:none!important}
+.chip{display:inline-block;font-size:10px;line-height:1.3;padding:3px 7px;border-radius:999px;
+  background:var(--bg3);color:var(--fg2);white-space:nowrap;font-variant-numeric:tabular-nums}
+#wrChip{background:rgba(74,158,255,.18);color:var(--blue);font-weight:700}
+#jErrChip{display:block;margin-top:6px;border-radius:7px;padding:5px 7px;font-size:11px;white-space:normal;
+  background:rgba(255,176,32,.16);color:var(--amber);border:1px solid var(--amber)}
+#toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:200;
+  background:var(--fg);color:var(--bg);padding:10px 15px;border-radius:999px;font-size:13px;font-weight:700;
+  box-shadow:0 6px 20px rgba(0,0,0,.35);pointer-events:none;max-width:90vw;text-align:center}
+.jSec{font-size:12px;margin:0 0 6px;color:var(--fg2);font-weight:600}
+.jRow{border:1px solid var(--line);border-radius:9px;padding:7px;margin-bottom:7px;background:var(--bg3)}
+.jHead{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:12px;margin-bottom:6px;
+  font-variant-numeric:tabular-nums}
+.jTag{font-size:10px;font-weight:700;padding:2px 5px;border-radius:4px}
+.jBtns{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px}
+.jBtns button{min-height:40px;padding:8px 2px;font-size:12px;font-weight:600}
+.jBtns button.win{color:var(--green)} .jBtns button.loss{color:var(--red)}
+.jRow2{display:flex;gap:5px;margin-top:5px}
+.jRow2 input{flex:1;min-width:0;min-height:40px;font-size:14px;padding:8px}
+.jDel{flex:0 0 46px;min-height:40px;padding:8px 2px;font-size:12px}
+.jEmpty{color:var(--fg3);font-size:11px;padding:6px 2px}
+.jStatGrid{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:6px}
+.jStat{background:var(--bg3);border-radius:7px;padding:5px 7px;min-width:0}
+.jStat b{display:block;font-size:14px;font-weight:700;font-variant-numeric:tabular-nums;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.jStat i{font-style:normal;font-size:9px;color:var(--fg2);display:block}
+.jLine{font-size:11px;color:var(--fg2);line-height:1.6;font-variant-numeric:tabular-nums}
+.hRow{display:flex;gap:6px;align-items:center;padding:8px 3px;border-top:1px solid var(--line);
+  font-size:12px;min-height:40px;cursor:pointer;font-variant-numeric:tabular-nums}
+.hRow .grow{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.jDetail{font-size:11px;color:var(--fg2);padding:2px 4px 9px;line-height:1.6;
+  border-top:1px dashed var(--line);word-break:break-word}
+.jDetail button{margin-top:6px;min-height:40px;padding:8px 12px;font-size:12px}
+.jTools{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px}
+.jTools button{min-height:44px;font-size:12px;padding:10px 4px}
+#jClear{color:var(--red)}
 </style>
 </head>
 <body>
@@ -147,6 +188,7 @@ details[open] summary::after{content:"▴"}
     <span class="small muted">LOT</span>
     <span id="lotBig" class="mono">0.10</span>
     <span id="sideTag" class="tagLong">LONG</span>
+    <span id="wrChip" class="chip" hidden></span>
     <span id="symTag" class="small muted" style="margin-left:auto">GOLDm#</span>
   </div>
   <div class="barStats">
@@ -160,6 +202,7 @@ details[open] summary::after{content:"▴"}
     <div class="stat"><b id="sMlevel">-</b><i>Margin level</i></div>
   </div>
   <div id="warnBox"></div>
+  <div id="jErrChip" hidden></div>
 </div>
 
 <div class="wrap">
@@ -261,9 +304,37 @@ details[open] summary::after{content:"▴"}
 
   <!-- 8. copy -->
   <div class="card">
-    <button id="copyBtn">คัดลอกสรุปออเดอร์</button>
+    <div class="actRow">
+      <button id="copyBtn">คัดลอกสรุปออเดอร์</button>
+      <button id="jSnapBtn">บันทึกไม้นี้</button>
+    </div>
     <div id="copyOut" class="mono"></div>
   </div>
+
+  <!-- 8b. journal (phase 2c) -->
+  <details id="jBox">
+    <summary id="jSummary">Journal</summary>
+    <div class="setBody">
+      <h2 class="jSec" id="jPendTitle">รอผล</h2>
+      <div id="jPend"></div>
+
+      <div class="sep"></div>
+      <h2 class="jSec">สถิติ (เฉพาะไม้ที่ปิดแล้ว) <span id="jSmall" class="chip" hidden>ยังน้อย (n&lt;30)</span></h2>
+      <div id="jStats"></div>
+
+      <div class="sep"></div>
+      <h2 class="jSec">ประวัติ 20 ไม้ล่าสุด</h2>
+      <div id="jHist"></div>
+
+      <div class="jTools">
+        <button id="jExpJson">Export JSON</button>
+        <button id="jExpCsv">Export CSV</button>
+        <button id="jImpBtn">Import JSON</button>
+        <button id="jClear">ล้างทั้งหมด</button>
+      </div>
+      <input id="jImpFile" type="file" accept="application/json,.json" hidden>
+    </div>
+  </details>
 
   <!-- 9. settings -->
   <details id="setBox">
@@ -297,6 +368,8 @@ details[open] summary::after{content:"▴"}
 
   <div class="foot">คำนวณและแสดงผลเป็น USD เสมอ · ไม่รวมค่าคอมมิชชั่น/สวอป</div>
 </div>
+
+<div id="toast" hidden></div>
 
 <script>
 /* ============================================================
@@ -550,6 +623,133 @@ var Calc = (function () {
     };
   }
 
+  /* ---------- journal (phase 2c) ---------- */
+  /* the only three outcomes a closed trade may carry */
+  var OUTCOMES = { win: 1, loss: 1, be: 1 };
+
+  function tradeDir(side) { return String(side).toUpperCase() === 'SHORT' ? -1 : 1; }
+
+  /*
+    realizedR(trade, exitPrice) -> { exitPrice, realizedR, pnl, outcome }
+
+    With a usable exit price:
+      dir       = +1 LONG / -1 SHORT
+      pnlPerLot = (exit - entry) * dir - spread
+      realizedR = pnlPerLot / effSlDist
+      pnl       = lot * pnlPerLot * contractSize
+      outcome is derived from the sign, |R| < 0.1 -> 'be'
+
+    Without one, trade.outcome decides:
+      win -> +plannedRR, loss -> -1, be -> 0, and pnl = realizedR * realRisk
+
+    Pure and total: never throws, returns NaN fields when it cannot decide.
+  */
+  function realizedR(trade, exitPrice) {
+    var t = trade || {};
+    var out = { exitPrice: null, realizedR: NaN, pnl: NaN, outcome: null };
+    var eff = num(t.effSlDist, NaN);
+    var ex = num(exitPrice, NaN);
+
+    if (isFinite(ex) && ex > 0 && isFinite(eff) && eff > 0) {
+      var perLot = (ex - num(t.entry, 0)) * tradeDir(t.side) - Math.max(0, num(t.spread, 0));
+      var R = r(perLot / eff, 6);
+      out.exitPrice = r(ex, 10);
+      out.realizedR = R;
+      out.pnl = r(num(t.lot, 0) * perLot * num(t.contractSize, 1), 10);
+      out.outcome = Math.abs(R) < 0.1 ? 'be' : (R > 0 ? 'win' : 'loss');
+      return out;
+    }
+
+    var oc = String(t.outcome === null || t.outcome === undefined ? '' : t.outcome).toLowerCase();
+    if (!OUTCOMES[oc]) return out;
+    var R2 = oc === 'be' ? 0 : (oc === 'loss' ? -1 : num(t.plannedRR, NaN));
+    if (!isFinite(R2)) return out;
+    out.realizedR = r(R2, 6);
+    out.outcome = oc;
+    out.pnl = r(R2 * num(t.realRisk, 0), 10);
+    return out;
+  }
+
+  /*
+    journalStats(trades) — only closed trades with a real outcome are counted.
+    Returns zeros/nulls for an empty (or junk) list and never throws.
+    'be' is neutral for streaks: it neither extends nor breaks a losing run.
+  */
+  function journalStats(trades) {
+    var s = {
+      n: 0, wins: 0, losses: 0, be: 0,
+      winRate: null, avgWinR: null, avgLossR: null,
+      expectancyR: null, expectancyUsd: null, totalPnl: 0,
+      avgPlannedRRWin: null, avgRealizedRWin: null,
+      maxConsecutiveLosses: 0, currentLossStreak: 0,
+      tightN: 0, tightWinRate: null, wideN: 0, wideWinRate: null,
+      small: true
+    };
+    var arr = [];
+    if (trades && typeof trades.length === 'number') {
+      for (var i = 0; i < trades.length; i++) {
+        var t = trades[i];
+        if (!t || typeof t !== 'object') continue;
+        if (t.status !== 'closed') continue;
+        if (!OUTCOMES[String(t.outcome)]) continue;
+        arr.push(t);
+      }
+    }
+    arr.sort(function (a, b) {
+      return num(a.closedTs, num(a.ts, 0)) - num(b.closedTs, num(b.ts, 0));
+    });
+    s.n = arr.length;
+    s.small = s.n < 30;
+    if (!s.n) return s;
+
+    var winR = 0, lossR = 0, pnlSum = 0, pnlN = 0, plannedSum = 0, plannedN = 0;
+    var tightTot = 0, tightWin = 0, wideTot = 0, wideWin = 0, streak = 0;
+
+    for (var j = 0; j < arr.length; j++) {
+      var x = arr[j], oc = String(x.outcome);
+      var R = num(x.realizedR, NaN), p = num(x.pnl, NaN);
+      if (isFinite(p)) { pnlSum += p; pnlN++; }
+
+      if (oc === 'win') {
+        s.wins++;
+        if (isFinite(R)) winR += R;
+        var pr = num(x.plannedRR, NaN);
+        if (isFinite(pr)) { plannedSum += pr; plannedN++; }
+        streak = 0;
+      } else if (oc === 'loss') {
+        s.losses++;
+        if (isFinite(R)) lossR += Math.abs(R);
+        streak++;
+        if (streak > s.maxConsecutiveLosses) s.maxConsecutiveLosses = streak;
+      } else {
+        s.be++;
+      }
+
+      var sa = num(x.slAtr, NaN);
+      if (isFinite(sa) && (oc === 'win' || oc === 'loss')) {
+        if (sa < 0.7) { tightTot++; if (oc === 'win') tightWin++; }
+        else { wideTot++; if (oc === 'win') wideWin++; }
+      }
+    }
+    s.currentLossStreak = streak;
+
+    var dec = s.wins + s.losses;                       /* be excluded from win rate */
+    s.winRate = dec > 0 ? r(s.wins / dec, 6) : null;
+    s.avgWinR = s.wins > 0 ? r(winR / s.wins, 6) : null;
+    s.avgLossR = s.losses > 0 ? r(lossR / s.losses, 6) : null;  /* positive magnitude */
+    if (s.winRate !== null) {
+      s.expectancyR = r(s.winRate * (s.avgWinR || 0) - (1 - s.winRate) * (s.avgLossR || 0), 6);
+    }
+    s.totalPnl = r(pnlSum, 10);
+    s.expectancyUsd = pnlN > 0 ? r(pnlSum / pnlN, 10) : null;
+    s.avgPlannedRRWin = plannedN > 0 ? r(plannedSum / plannedN, 6) : null;
+    s.avgRealizedRWin = s.avgWinR;
+    s.tightN = tightTot; s.wideN = wideTot;
+    if (tightTot >= 5) s.tightWinRate = r(tightWin / tightTot, 6);
+    if (wideTot >= 5) s.wideWinRate = r(wideWin / wideTot, 6);
+    return s;
+  }
+
   /* ---------- defaults: XM Ultra Low Micro, GOLDm# ---------- */
   var XM_DEFAULTS = {
     symbol: 'GOLDm#', contractSize: 1, minLot: 0.1, lotStep: 0.01, maxLot: 100,
@@ -648,6 +848,76 @@ var Calc = (function () {
     ok('atrRatios atr 0 -> null (no throw)', !threw && t15b === null, t15b, null);
     ok('atrRatios atr NaN -> null (no throw)', !threw && t15c === null, t15c, null);
 
+    /* ----- journal (phase 2c) ----- */
+    var jt = {
+      side: 'LONG', entry: 2400, sl: 2395, tp: 2410, lot: 0.39,
+      spread: 0.03, contractSize: 1,
+      effSlDist: effSlDist(5, 0.03),
+      plannedRR: computeRR({ entry: 2400, tp: 2410, slDist: 5, spread: 0.03 }),
+      realRisk: r(0.39 * effSlDist(5, 0.03) * 1, 10)
+    };
+    ok('journal fixture effSlDist = 5.03', near(jt.effSlDist, 5.03, 1e-9), jt.effSlDist, 5.03);
+
+    var j1 = realizedR(jt, 2410);
+    ok('realizedR exit 2410 = 9.97/5.03 = 1.982', near(j1.realizedR, 9.97 / 5.03, 1e-3), j1.realizedR, 9.97 / 5.03);
+    ok('  outcome auto = win', j1.outcome === 'win', j1.outcome, 'win');
+    ok('  pnl = 0.39 x 9.97 = $3.8883', near(j1.pnl, 3.8883, 1e-6), j1.pnl, 3.8883);
+
+    var j2 = realizedR(jt, 2395);
+    ok('realizedR exit 2395 = -1.000', near(j2.realizedR, -1, 1e-3), j2.realizedR, -1);
+    ok('  outcome auto = loss', j2.outcome === 'loss', j2.outcome, 'loss');
+
+    var j2b = realizedR(jt, 2400.2);
+    ok('realizedR exit near entry -> be (|R| < 0.1)', j2b.outcome === 'be', j2b.outcome, 'be');
+
+    var jWin = {}, jLoss = {}, jBe = {}, k1;
+    for (k1 in jt) if (Object.prototype.hasOwnProperty.call(jt, k1)) { jWin[k1] = jt[k1]; jLoss[k1] = jt[k1]; jBe[k1] = jt[k1]; }
+    jWin.outcome = 'win'; jLoss.outcome = 'loss'; jBe.outcome = 'be';
+
+    var j3 = realizedR(jWin, null);
+    ok('quick win (no exit price) = +plannedRR 1.982', near(j3.realizedR, 9.97 / 5.03, 1e-3), j3.realizedR, 9.97 / 5.03);
+    var j4 = realizedR(jLoss, null);
+    ok('quick loss (no exit price) = -1', near(j4.realizedR, -1, 1e-9), j4.realizedR, -1);
+    ok('  pnl = -1 x realRisk = -$1.9617', near(j4.pnl, -1.9617, 1e-6), j4.pnl, -1.9617);
+    var j4b = realizedR(jBe, null);
+    ok('quick breakeven = 0R', near(j4b.realizedR, 0, 1e-9), j4b.realizedR, 0);
+
+    function mkT(i, oc, R, pnlUsd) {
+      return {
+        id: 'x' + i, ts: i, closedTs: i, status: 'closed', outcome: oc,
+        realizedR: R, pnl: pnlUsd, plannedRR: 2, side: 'LONG'
+      };
+    }
+    var jStats = journalStats([
+      mkT(1, 'win', 2, 20), mkT(2, 'win', 2, 20), mkT(3, 'win', 2, 20),
+      mkT(4, 'loss', -1, -10), mkT(5, 'loss', -1, -10)
+    ]);
+    ok('journalStats 3W@2R 2L@1R -> n 5, wins 3, losses 2',
+      jStats.n === 5 && jStats.wins === 3 && jStats.losses === 2, jStats.n, 5);
+    ok('  winRate = 0.6', near(jStats.winRate, 0.6, 1e-9), jStats.winRate, 0.6);
+    ok('  avgWinR 2 / avgLossR 1 (positive magnitude)',
+      near(jStats.avgWinR, 2, 1e-9) && near(jStats.avgLossR, 1, 1e-9), jStats.avgLossR, 1);
+    ok('  expectancyR = 0.6x2 - 0.4x1 = 0.8', near(jStats.expectancyR, 0.8, 1e-9), jStats.expectancyR, 0.8);
+    ok('  expectancy$ = mean pnl = $8', near(jStats.expectancyUsd, 8, 1e-9), jStats.expectancyUsd, 8);
+    ok('  maxConsecutiveLosses = 2', jStats.maxConsecutiveLosses === 2, jStats.maxConsecutiveLosses, 2);
+    ok('  currentLossStreak = 2', jStats.currentLossStreak === 2, jStats.currentLossStreak, 2);
+    ok('  small flag set (n < 30)', jStats.small === true, jStats.small, true);
+
+    var jEmpty = null, jThrew = false;
+    try { jEmpty = journalStats([]); journalStats(null); journalStats([null, 5, {}]); }
+    catch (e) { jThrew = true; }
+    ok('journalStats([]) does not throw', !jThrew && !!jEmpty, jThrew, false);
+    ok('  empty -> n 0, winRate null, maxConsecutiveLosses 0',
+      !!jEmpty && jEmpty.n === 0 && jEmpty.winRate === null && jEmpty.maxConsecutiveLosses === 0,
+      jEmpty && jEmpty.n, 0);
+
+    var jCohort = journalStats([
+      mkT(1, 'win', 2, 20), mkT(2, 'loss', -1, -10), mkT(3, 'win', 2, 20),
+      mkT(4, 'loss', -1, -10), mkT(5, 'win', 2, 20)
+    ]);
+    ok('cohort winRate hidden while n < 5 in that bucket',
+      jCohort.tightWinRate === null && jCohort.wideWinRate === null, jCohort.tightWinRate, null);
+
     var failed = results.filter(function (x) { return !x.pass; });
     return { total: results.length, failed: failed.length, results: results, ok: failed.length === 0 };
   }
@@ -659,6 +929,7 @@ var Calc = (function () {
     effSlDist: effSlDist, computeLot: computeLot, computeSlFromLot: computeSlFromLot,
     slFromDist: slFromDist, computeTp: computeTp, computeRR: computeRR, computeProfit: computeProfit,
     atrRatios: atrRatios, slFromAtr: slFromAtr,
+    realizedR: realizedR, journalStats: journalStats,
     validateDirection: validateDirection, calibrateContractSize: calibrateContractSize,
     computeAll: computeAll, XM_DEFAULTS: XM_DEFAULTS, runSelfTests: runSelfTests
   };
@@ -864,6 +1135,93 @@ function load() {
   } catch (e) { /* ignore corrupt storage */ }
 }
 
+/* ---------- journal persistence (phase 2c) ----------
+   Its OWN localStorage key, on purpose: a parse failure here can never take
+   the settings key (or the calculator) down with it. Every read/write is
+   wrapped; a failure only raises a small non-blocking chip. */
+var LS_JOURNAL = 'xau_journal_v1';
+var JOURNAL_CAP = 1000;
+var journal = [];
+var journalErr = '';
+
+function isTradeShape(t) {
+  if (!t || typeof t !== 'object') return false;
+  if (typeof t.id !== 'string' && typeof t.id !== 'number') return false;
+  if (t.side !== 'LONG' && t.side !== 'SHORT') return false;
+  if (t.status !== 'open' && t.status !== 'closed') return false;
+  if (!isFinite(Calc.num(t.entry, NaN))) return false;
+  if (!isFinite(Calc.num(t.lot, NaN))) return false;
+  return true;
+}
+
+function n0(v) { var n = Calc.num(v, NaN); return isFinite(n) ? n : null; }
+
+function normalizeTrade(t) {
+  var oc = (t.outcome === 'win' || t.outcome === 'loss' || t.outcome === 'be') ? t.outcome : null;
+  return {
+    id: String(t.id), ts: Calc.num(t.ts, 0) || 0, side: t.side,
+    entry: Calc.num(t.entry, 0), sl: n0(t.sl), tp: n0(t.tp),
+    lot: Calc.num(t.lot, 0), riskMoney: Calc.num(t.riskMoney, 0),
+    riskPct: Calc.num(t.riskPct, 0), realRisk: Calc.num(t.realRisk, 0),
+    plannedRR: n0(t.plannedRR), effSlDist: Calc.num(t.effSlDist, 0),
+    spread: Calc.num(t.spread, 0), contractSize: Calc.num(t.contractSize, 1),
+    atr: n0(t.atr), slAtr: n0(t.slAtr), tpAtr: n0(t.tpAtr),
+    status: t.status === 'closed' ? 'closed' : 'open',
+    outcome: oc, exitPrice: n0(t.exitPrice), realizedR: n0(t.realizedR),
+    pnl: n0(t.pnl), closedTs: n0(t.closedTs),
+    note: typeof t.note === 'string' ? t.note.slice(0, 40) : ''
+  };
+}
+
+function journalLoad() {
+  journal = [];
+  try {
+    var raw = localStorage.getItem(LS_JOURNAL);
+    if (!raw) return;
+    var a = JSON.parse(raw);
+    if (Object.prototype.toString.call(a) !== '[object Array]') { journalErr = 'ข้อมูล journal เสียรูป — เริ่มใหม่ว่างเปล่า (เครื่องคิดเลขยังใช้ได้)'; return; }
+    for (var i = 0; i < a.length; i++) if (isTradeShape(a[i])) journal.push(normalizeTrade(a[i]));
+    if (journal.length < a.length) journalErr = 'ข้าม ' + (a.length - journal.length) + ' รายการที่อ่านไม่ออกใน journal';
+  } catch (e) {
+    journal = [];
+    journalErr = 'อ่าน journal ไม่ได้ (ข้อมูลเสีย) — เครื่องคิดเลขยังใช้ได้ตามปกติ';
+  }
+}
+
+/* keep at most JOURNAL_CAP trades: oldest closed go first, open only as a last resort */
+function journalCap() {
+  var over = journal.length - JOURNAL_CAP;
+  if (over <= 0) return;
+  var order = [];
+  for (var i = 0; i < journal.length; i++) order.push(i);
+  order.sort(function (a, b) {
+    var ta = journal[a], tb = journal[b];
+    var ca = ta.status === 'closed' ? 0 : 1, cb = tb.status === 'closed' ? 0 : 1;
+    if (ca !== cb) return ca - cb;                       /* closed first */
+    return (ta.closedTs || ta.ts || 0) - (tb.closedTs || tb.ts || 0);   /* oldest first */
+  });
+  var kill = {};
+  for (var k = 0; k < over; k++) kill[order[k]] = 1;
+  var out = [];
+  for (var j = 0; j < journal.length; j++) if (!kill[j]) out.push(journal[j]);
+  journal = out;
+}
+
+function journalSave() {
+  journalCap();
+  try {
+    localStorage.setItem(LS_JOURNAL, JSON.stringify(journal));
+    journalErr = '';
+  } catch (e) {
+    journalErr = 'บันทึก journal ไม่ได้ (พื้นที่เต็มหรือถูกปิดกั้น) — ตัวเลขบนหน้ายังถูกต้อง';
+  }
+}
+
+function journalFind(id) {
+  for (var i = 0; i < journal.length; i++) if (journal[i].id === id) return journal[i];
+  return null;
+}
+
 /* ============================================================
    PART 3 — ui.js : bind + render
    ============================================================ */
@@ -937,6 +1295,7 @@ function render() {
   $('lotMinus').disabled = invalid;
   $('lotPlus').disabled = invalid;
   $('copyBtn').disabled = invalid;
+  $('jSnapBtn').disabled = invalid;   /* same gate: never snapshot a meaningless setup */
   $('whatIfWrap').classList.toggle('ctlDisabled', invalid);
 
   /* --- ATR row (advisory only: never feeds isInvalidState) --- */
@@ -955,6 +1314,10 @@ function render() {
   }
   $('warnBox').innerHTML = warns.map(function (w) { return '⚠ ' + w; }).join('<br>');
   $('bar').className = warns.length ? 'warn' : '';
+
+  /* --- journal (renders before --barH is measured: both chips live in the bar) --- */
+  renderJournal();
+
   /* keep focused inputs clear of the sticky bar even when it grows with warning lines */
   document.documentElement.style.setProperty('--barH', ($('bar').offsetHeight + 12) + 'px');
 
@@ -1131,6 +1494,375 @@ function summaryText() {
       ' (SL ' + nf(v.atr.slAtr, 1) + '×, TP ' + nf(v.atr.tpAtr, 1) + '×)' : '');
 }
 function renderCopy() { $('copyOut').textContent = summaryText(); }
+
+/* ============================================================
+   --- 8b. journal (phase 2c) : UI only, all maths live in Calc ---
+   ============================================================ */
+var jExitDraft = {};     /* id -> raw text typed in that row's "ราคาออก" box */
+var jOpenDetail = {};    /* id -> true while a history row is expanded */
+var toastTimer = null;
+
+function toast(msg) {
+  var el = $('toast');
+  el.textContent = msg;
+  el.hidden = false;
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(function () { el.hidden = true; }, 1900);
+}
+
+function has(v) { return v !== null && v !== undefined && isFinite(v); }
+function moneyOr(v, sign) { return has(v) ? money(v, sign) : '—'; }
+function rTxt(v) { return has(v) ? (v > 0 ? '+' : '') + nf(v, 2) + 'R' : '—'; }
+function rCls(v) { return has(v) ? (v > 0 ? 'pos' : (v < 0 ? 'neg' : '')) : ''; }
+function pctTxt(v) { return v === null || !isFinite(v) ? '—' : nf(v * 100, 0) + '%'; }
+function ocTxt(o) { return o === 'win' ? 'ชนะ' : (o === 'loss' ? 'แพ้' : (o === 'be' ? 'คืนทุน' : '-')); }
+function p2(n) { return (n < 10 ? '0' : '') + n; }
+function tsTxt(ts) {
+  var t = Calc.num(ts, NaN);
+  if (!isFinite(t) || t <= 0) return '-';
+  var d = new Date(t);
+  return p2(d.getDate()) + '/' + p2(d.getMonth() + 1) + ' ' + p2(d.getHours()) + ':' + p2(d.getMinutes());
+}
+
+/* one tap = the whole open trade, straight from state + view */
+function snapshotTrade() {
+  var c = state.cfg, v = view;
+  return {
+    id: 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+    ts: Date.now(),
+    side: state.side,
+    entry: Calc.num(state.entry, 0),
+    sl: Calc.num(state.sl, 0),
+    tp: Calc.num(state.tp, 0),
+    lot: Calc.num(state.lot, 0),
+    riskMoney: riskUsd(),
+    riskPct: Calc.num(state.riskPct, 0),
+    realRisk: Calc.num(v.realRisk, 0),
+    plannedRR: isFinite(v.rr) ? v.rr : null,
+    effSlDist: Calc.num(v.effSlDist, 0),
+    spread: Calc.num(c.spread, 0),
+    contractSize: Calc.num(c.contractSize, 1),
+    atr: has(state.atr) ? Calc.num(state.atr, 0) : null,
+    slAtr: v.atr && isFinite(v.atr.slAtr) ? v.atr.slAtr : null,
+    tpAtr: v.atr && isFinite(v.atr.tpAtr) ? v.atr.tpAtr : null,
+    status: 'open', outcome: null, exitPrice: null,
+    realizedR: null, pnl: null, closedTs: null, note: ''
+  };
+}
+
+function jSnapshot() {
+  if (isInvalidState()) { toast('ยังกรอกไม่ครบ/ผิดทิศ — บันทึกไม่ได้'); return; }
+  journal.push(snapshotTrade());
+  journalSave();
+  render();
+  toast('บันทึกไม้นี้แล้ว ✓');
+}
+
+function jClose(id, outcome) {
+  var t = journalFind(id);
+  if (!t) return;
+  var raw = String(jExitDraft[id] === undefined ? '' : jExitDraft[id]).trim().replace(/,/g, '');
+  var ex = raw === '' ? NaN : parseFloat(raw);
+  var res = Calc.realizedR({
+    side: t.side, entry: t.entry, spread: t.spread, effSlDist: t.effSlDist,
+    lot: t.lot, contractSize: t.contractSize,
+    plannedRR: t.plannedRR, realRisk: t.realRisk, outcome: outcome
+  }, isFinite(ex) ? ex : null);
+  if (!isFinite(res.realizedR)) { toast('ปิดไม้นี้ไม่ได้ — ข้อมูลไม่พอ'); return; }
+  t.status = 'closed';
+  t.outcome = res.outcome;
+  t.realizedR = res.realizedR;
+  t.pnl = res.pnl;
+  t.exitPrice = res.exitPrice;
+  t.closedTs = Date.now();
+  delete jExitDraft[id];
+  journalSave();
+  render();
+  toast(ocTxt(t.outcome) + ' ' + rTxt(t.realizedR) + ' · ' + moneyOr(t.pnl, true));
+}
+
+function jDelete(id) {
+  var t = journalFind(id);
+  if (!t) return;
+  if (!confirm('ลบไม้นี้ออกจาก journal?\n' + t.side + ' ' + nf(t.entry, 2) + ' · ' + nf(t.lot, 2) + ' lot')) return;
+  for (var i = 0; i < journal.length; i++) {
+    if (journal[i].id === id) { journal.splice(i, 1); break; }
+  }
+  delete jExitDraft[id];
+  delete jOpenDetail[id];
+  journalSave();
+  render();
+  toast('ลบแล้ว');
+}
+
+function renderJournal() {
+  var st = Calc.journalStats(journal);
+
+  /* sticky chip: only once there are 10+ decisive (win/loss) closed trades */
+  var dec = st.wins + st.losses;
+  var chip = $('wrChip');
+  if (dec >= 10 && st.winRate !== null) {
+    chip.hidden = false;
+    chip.textContent = 'WR ' + pctTxt(st.winRate) + ' (n=' + dec + ')';
+  } else { chip.hidden = true; chip.textContent = ''; }
+
+  var ec = $('jErrChip');
+  if (journalErr) { ec.hidden = false; ec.textContent = '⚠ journal: ' + journalErr; }
+  else { ec.hidden = true; ec.textContent = ''; }
+
+  var open = journal.filter(function (t) { return t.status === 'open'; });
+  $('jSummary').textContent = open.length ? 'Journal (รอผล ' + open.length + ')' : 'Journal';
+
+  renderJPending(open);
+  renderJStats(st);
+  renderJHistory();
+}
+
+function renderJPending(open) {
+  var box = $('jPend'), c = state.cfg;
+  var ae = document.activeElement;
+  var focusId = (ae && ae.getAttribute && ae.getAttribute('data-jx')) || null;
+
+  $('jPendTitle').textContent = 'รอผล (' + open.length + ')';
+  box.innerHTML = '';
+  if (!open.length) {
+    box.innerHTML = '<div class="jEmpty">ยังไม่มีไม้ที่รอผล — กด "บันทึกไม้นี้" ตอนเปิดออเดอร์</div>';
+    return;
+  }
+
+  open.slice().reverse().forEach(function (t) {
+    var row = document.createElement('div');
+    row.className = 'jRow';
+
+    var head = document.createElement('div');
+    head.className = 'jHead';
+    head.innerHTML =
+      '<span class="jTag ' + (t.side === 'SHORT' ? 'tagShort' : 'tagLong') + '">' + t.side + '</span>' +
+      '<span class="mono">' + nf(t.entry, c.digits) + '</span>' +
+      '<span class="muted xs">' + nf(t.lot, 2) + ' lot</span>' +
+      '<span class="neg xs mono">' + moneyOr(-t.realRisk) + '</span>' +
+      '<span class="muted xs" style="margin-left:auto">' + tsTxt(t.ts) + '</span>';
+    row.appendChild(head);
+
+    var btns = document.createElement('div');
+    btns.className = 'jBtns';
+    [['win', 'ชนะ', 'win'], ['loss', 'แพ้', 'loss'], ['be', 'คืนทุน', '']].forEach(function (d) {
+      var b = document.createElement('button');
+      b.textContent = d[1];
+      if (d[2]) b.className = d[2];
+      b.addEventListener('click', function () { jClose(t.id, d[0]); });
+      btns.appendChild(b);
+    });
+    row.appendChild(btns);
+
+    var r2 = document.createElement('div');
+    r2.className = 'jRow2';
+    var inp = document.createElement('input');
+    inp.type = 'text';
+    inp.setAttribute('inputmode', 'decimal');
+    inp.setAttribute('autocomplete', 'off');
+    inp.setAttribute('data-jx', t.id);
+    inp.spellcheck = false;
+    inp.placeholder = 'ราคาออก (ใส่ก็ได้)';
+    inp.value = jExitDraft[t.id] || '';
+    inp.addEventListener('input', function () { jExitDraft[t.id] = inp.value; });
+    r2.appendChild(inp);
+
+    var del = document.createElement('button');
+    del.className = 'jDel';
+    del.textContent = 'ลบ';
+    del.addEventListener('click', function () { jDelete(t.id); });
+    r2.appendChild(del);
+    row.appendChild(r2);
+
+    box.appendChild(row);
+  });
+
+  /* a re-render must not steal focus out of a half-typed exit price */
+  if (focusId) {
+    var back = box.querySelector('[data-jx="' + focusId + '"]');
+    if (back && document.activeElement !== back) {
+      back.focus();
+      try { back.setSelectionRange(back.value.length, back.value.length); } catch (e) { }
+    }
+  }
+}
+
+function renderJStats(st) {
+  var box = $('jStats');
+  $('jSmall').hidden = !(st.n > 0 && st.small);
+  if (!st.n) {
+    box.innerHTML = '<div class="jEmpty">ยังไม่มีไม้ที่ปิดแล้ว</div>';
+    return;
+  }
+  var h = '<div class="jStatGrid">' +
+    '<div class="jStat"><b>' + st.n + '</b><i>ไม้ที่ปิดแล้ว</i></div>' +
+    '<div class="jStat"><b>' + pctTxt(st.winRate) + '</b><i>Win rate (ไม่นับคืนทุน)</i></div>' +
+    '<div class="jStat"><b class="' + rCls(st.expectancyR) + '">' + rTxt(st.expectancyR) + '</b><i>Expectancy / ไม้</i></div>' +
+    '<div class="jStat"><b class="' + rCls(st.expectancyUsd) + '">' + moneyOr(st.expectancyUsd, true) + '</b><i>Expectancy $ / ไม้</i></div>' +
+    '</div>';
+  h += '<div class="jLine">' +
+    'ชนะ ' + st.wins + ' · แพ้ ' + st.losses + ' · คืนทุน ' + st.be + '<br>' +
+    'avg win ' + rTxt(st.avgWinR) + ' · avg loss ' + (has(st.avgLossR) ? '−' + nf(st.avgLossR, 2) + 'R' : '—') + '<br>' +
+    'ไม้ชนะ: แผน ' + (has(st.avgPlannedRRWin) ? nf(st.avgPlannedRRWin, 2) + 'R' : '—') +
+    ' → จริง ' + rTxt(st.avgRealizedRWin) + '<br>' +
+    'แพ้ติดกันสูงสุด ' + st.maxConsecutiveLosses + ' · ตอนนี้ ' + st.currentLossStreak + '<br>' +
+    'รวมกำไร/ขาดทุน ' + moneyOr(st.totalPnl, true);
+  if (st.tightWinRate !== null) h += '<br>SL &lt; 0.7 ATR: WR ' + pctTxt(st.tightWinRate) + ' (n=' + st.tightN + ')';
+  if (st.wideWinRate !== null) h += '<br>SL ≥ 0.7 ATR: WR ' + pctTxt(st.wideWinRate) + ' (n=' + st.wideN + ')';
+  h += '</div>';
+  box.innerHTML = h;
+}
+
+function renderJHistory() {
+  var box = $('jHist'), c = state.cfg;
+  box.innerHTML = '';
+  var closed = journal.filter(function (t) { return t.status === 'closed'; })
+    .sort(function (a, b) {
+      return Calc.num(b.closedTs, Calc.num(b.ts, 0)) - Calc.num(a.closedTs, Calc.num(a.ts, 0));
+    })
+    .slice(0, 20);
+  if (!closed.length) {
+    box.innerHTML = '<div class="jEmpty">ยังไม่มีประวัติ</div>';
+    return;
+  }
+  closed.forEach(function (t) {
+    var cls = t.outcome === 'win' ? 'pos' : (t.outcome === 'loss' ? 'neg' : 'muted');
+    var row = document.createElement('div');
+    row.className = 'hRow';
+    row.innerHTML =
+      '<span class="jTag ' + (t.side === 'SHORT' ? 'tagShort' : 'tagLong') + '">' + t.side + '</span>' +
+      '<span class="grow muted xs">' + tsTxt(t.closedTs || t.ts) + ' · ' + nf(t.entry, c.digits) + '</span>' +
+      '<span class="' + cls + '" style="font-weight:700">' + rTxt(t.realizedR) + '</span>' +
+      '<span class="' + cls + '">' + moneyOr(t.pnl, true) + '</span>';
+    row.addEventListener('click', function () {
+      jOpenDetail[t.id] = !jOpenDetail[t.id];
+      renderJHistory();
+    });
+    box.appendChild(row);
+
+    if (jOpenDetail[t.id]) {
+      var d = document.createElement('div');
+      d.className = 'jDetail';
+      d.innerHTML =
+        'เปิด ' + tsTxt(t.ts) + ' → ปิด ' + tsTxt(t.closedTs) + '<br>' +
+        'Entry ' + nf(t.entry, c.digits) + ' · SL ' + (has(t.sl) ? nf(t.sl, c.digits) : '—') +
+        ' · TP ' + (has(t.tp) ? nf(t.tp, c.digits) : '—') +
+        ' · ออก ' + (has(t.exitPrice) ? nf(t.exitPrice, c.digits) : 'ไม่ระบุ') + '<br>' +
+        nf(t.lot, 2) + ' lot · เสี่ยง ' + moneyOr(t.realRisk) + ' (' + nf(t.riskPct, 2) + '%)' +
+        ' · effSL ' + nf(t.effSlDist, 2) + ' · spread ' + nf(t.spread, 2) + '<br>' +
+        'แผน ' + (has(t.plannedRR) ? nf(t.plannedRR, 2) + 'R' : '—') + ' → จริง ' + rTxt(t.realizedR) +
+        ' · ผล ' + ocTxt(t.outcome) + '<br>' +
+        (has(t.atr)
+          ? 'ATR ' + nf(t.atr, 2) + ' (SL ' + (has(t.slAtr) ? nf(t.slAtr, 1) : '—') + '× · TP ' + (has(t.tpAtr) ? nf(t.tpAtr, 1) : '—') + '×)'
+          : 'ไม่ได้กรอก ATR');
+      var db = document.createElement('button');
+      db.textContent = 'ลบไม้นี้';
+      db.addEventListener('click', function () { jDelete(t.id); });
+      d.appendChild(document.createElement('br'));
+      d.appendChild(db);
+      box.appendChild(d);
+    }
+  });
+}
+
+/* ---------- export / import ---------- */
+/* Blob + <a download> works both on GitHub Pages and on file:// */
+function jDownload(name, mime, text) {
+  try {
+    var old = $('jLastDownload');
+    if (old && old.parentNode) old.parentNode.removeChild(old);
+    var url = URL.createObjectURL(new Blob([text], { type: mime }));
+    var a = document.createElement('a');
+    a.id = 'jLastDownload';
+    a.href = url;
+    a.download = name;
+    a.textContent = name;
+    a.style.position = 'fixed';
+    a.style.left = '-9999px';
+    document.body.appendChild(a);
+    a.click();
+    window.__lastExport = { name: name, download: a.getAttribute('download'), href: a.href, bytes: text.length };
+    toast('สร้างไฟล์ ' + name);
+  } catch (e) {
+    toast('สร้างไฟล์ไม่ได้');
+  }
+}
+
+var CSV_COLS = ['id', 'ts', 'side', 'entry', 'sl', 'tp', 'lot', 'riskMoney', 'riskPct', 'realRisk',
+  'plannedRR', 'effSlDist', 'spread', 'contractSize', 'atr', 'slAtr', 'tpAtr',
+  'status', 'outcome', 'exitPrice', 'realizedR', 'pnl', 'closedTs', 'note'];
+
+function csvCell(v) {
+  if (v === null || v === undefined) return '';
+  var s = String(v);
+  return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+function jToCsv() {
+  var lines = [CSV_COLS.join(',')];
+  journal.forEach(function (t) {
+    lines.push(CSV_COLS.map(function (k) { return csvCell(t[k]); }).join(','));
+  });
+  return lines.join('\r\n');
+}
+function jStamp() {
+  var d = new Date();
+  return d.getFullYear() + p2(d.getMonth() + 1) + p2(d.getDate()) + '-' + p2(d.getHours()) + p2(d.getMinutes());
+}
+
+function jImportText(txt) {
+  var added = 0, dup = 0, bad = 0;
+  var a;
+  try { a = JSON.parse(txt); } catch (e) { toast('ไฟล์เสีย: ไม่ใช่ JSON'); return; }
+  if (Object.prototype.toString.call(a) !== '[object Array]') { toast('ไฟล์ไม่ใช่ JSON array'); return; }
+  var have = {};
+  journal.forEach(function (t) { have[t.id] = 1; });
+  for (var i = 0; i < a.length; i++) {
+    if (!isTradeShape(a[i])) { bad++; continue; }
+    var t = normalizeTrade(a[i]);
+    if (have[t.id]) { dup++; continue; }   /* merge by id, never duplicate */
+    journal.push(t);
+    have[t.id] = 1;
+    added++;
+  }
+  journal.sort(function (p, q) { return Calc.num(p.ts, 0) - Calc.num(q.ts, 0); });
+  journalSave();
+  render();
+  toast('นำเข้า ' + added + ' ไม้ · ซ้ำ ' + dup + (bad ? ' · ข้าม ' + bad : ''));
+}
+
+function jClearAll() {
+  if (!journal.length) { toast('journal ว่างอยู่แล้ว'); return; }
+  if (!confirm('ล้าง journal ทั้งหมด ' + journal.length + ' ไม้?\nข้อมูลนี้กู้คืนไม่ได้ — แนะนำให้ Export ก่อน')) return;
+  if (!confirm('ยืนยันอีกครั้ง: ลบทิ้งถาวรทั้งหมด ' + journal.length + ' ไม้')) return;
+  journal = [];
+  jExitDraft = {};
+  jOpenDetail = {};
+  journalSave();
+  render();
+  toast('ล้าง journal แล้ว');
+}
+
+function initJournalUI() {
+  $('jSnapBtn').addEventListener('click', jSnapshot);
+  $('jExpJson').addEventListener('click', function () {
+    jDownload('xau-journal-' + jStamp() + '.json', 'application/json', JSON.stringify(journal, null, 2));
+  });
+  $('jExpCsv').addEventListener('click', function () {
+    jDownload('xau-journal-' + jStamp() + '.csv', 'text/csv', jToCsv());
+  });
+  $('jImpBtn').addEventListener('click', function () { $('jImpFile').click(); });
+  $('jImpFile').addEventListener('change', function () {
+    var f = this.files && this.files[0];
+    var self = this;
+    if (!f) return;
+    var fr = new FileReader();
+    fr.onload = function () { jImportText(String(fr.result)); self.value = ''; };
+    fr.onerror = function () { toast('อ่านไฟล์ไม่ได้'); self.value = ''; };
+    try { fr.readAsText(f); } catch (e) { toast('อ่านไฟล์ไม่ได้'); self.value = ''; }
+  });
+  $('jClear').addEventListener('click', jClearAll);
+}
 
 /* ============================================================
    bindings — handlers only set state + call recalc/render
@@ -1316,13 +2048,16 @@ function renderCalib() {
         .map(function (x) { return x.name; }).join(' · ') + ' — อย่าเชื่อตัวเลขบนหน้านี้';
   }
   load();
+  journalLoad();      /* separate key: a failure here only raises a chip */
   initUI();
+  initJournalUI();
   recalc('init');
   render();
   renderCalib();
   /* debug hooks (also used by the browser verification pass) */
   window.__tests = testReport;
-  window.__get = function () { return { state: state, view: view }; };
+  window.__get = function () { return { state: state, view: view, journal: journal, journalErr: journalErr }; };
+  window.__stats = function () { return Calc.journalStats(journal); };
 })();
 </script>
 </body>
