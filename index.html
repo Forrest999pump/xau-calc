@@ -67,6 +67,10 @@ button:disabled,input:disabled{opacity:.4;cursor:not-allowed;filter:none}
 .seg button{border:0;border-radius:0;flex:1;padding:11px 4px;font-size:11px;background:transparent}
 .seg button.on{background:var(--blue);color:#fff}
 
+/* ===== ATR row ===== */
+.atrOut{white-space:nowrap;font-weight:700}
+#inAtr::placeholder{color:var(--fg3);font-size:13px}
+
 /* ===== sticky result bar ===== */
 #bar{
   position:sticky;top:0;z-index:50;background:var(--bg2);
@@ -190,6 +194,21 @@ details[open] summary::after{content:"▴"}
     <div class="quick">
       <button data-rr="1">TP 1R</button><button data-rr="1.5">TP 1.5R</button>
       <button data-rr="2">TP 2R</button><button data-rr="3">TP 3R</button>
+    </div>
+
+    <!-- 3b. ATR (ความผันผวน) -->
+    <div class="sep" style="margin:9px 0 7px"></div>
+    <div class="row" id="atrRow">
+      <span class="xs muted" style="min-width:24px">ATR</span>
+      <input autocomplete="off" autocorrect="off" spellcheck="false" id="inAtr" type="text" inputmode="decimal" placeholder="อ่านจาก ATR(14)" style="flex:1 1 92px;min-width:0">
+      <span id="atrSlOut" class="xs mono atrOut" hidden></span>
+      <span id="atrTpOut" class="xs mono atrOut" hidden></span>
+    </div>
+    <div class="row" style="margin-top:6px">
+      <span class="xs muted" style="min-width:62px">SL จาก ATR</span>
+      <div class="seg" style="flex:1">
+        <button data-atrk="1">1×</button><button data-atrk="1.5">1.5×</button><button data-atrk="2">2×</button>
+      </div>
     </div>
   </div>
 
@@ -444,6 +463,29 @@ var Calc = (function () {
     return r(num(o.lot, 0) * (tpDist - spread) * num(o.contractSize, 1), 10);
   }
 
+  /* ---------- ATR (volatility) ---------- */
+  /*
+    atrRatios: how many ATRs the SL / TP distances are worth.
+    Returns null (never throws) when atr is missing / not a finite number > 0.
+  */
+  function atrRatios(slDist, tpDist, atr) {
+    var a = num(atr, NaN);
+    if (!isFinite(a) || !(a > 0)) return null;
+    var sd = num(slDist, NaN), td = num(tpDist, NaN);
+    return {
+      slAtr: isFinite(sd) ? r(Math.abs(sd) / a, 6) : NaN,
+      tpAtr: isFinite(td) ? r(Math.abs(td) / a, 6) : NaN
+    };
+  }
+
+  /* SL price k ATRs away from entry: LONG entry - k*atr, SHORT entry + k*atr */
+  function slFromAtr(entry, side, atr, k) {
+    var e = num(entry, NaN), a = num(atr, NaN), kk = num(k, NaN);
+    if (!isFinite(e) || !isFinite(a) || !(a > 0) || !isFinite(kk)) return NaN;
+    var d = Math.abs(kk) * a;
+    return String(side).toUpperCase() === 'SHORT' ? r(e + d, 2) : r(e - d, 2);
+  }
+
   /* ---------- validation ---------- */
   /* LONG: sl < entry < tp ; SHORT: tp < entry < sl */
   function validateDirection(side, entry, sl, tp) {
@@ -588,6 +630,24 @@ var Calc = (function () {
 
     ok('XM_DEFAULTS internal unit stays USD (app is USD-only, no unit toggle)', XM_DEFAULTS.unit === 'USD', XM_DEFAULTS.unit, 'USD');
 
+    /* ----- ATR (phase 2a) ----- */
+    var t13 = slFromAtr(2400, 'LONG', 5, 1.5);
+    ok('slFromAtr LONG entry 2400 atr 5 k 1.5 = 2392.50', near(t13, 2392.5), t13, 2392.5);
+    var t13s = slFromAtr(2400, 'SHORT', 5, 1.5);
+    ok('slFromAtr SHORT entry 2400 atr 5 k 1.5 = 2407.50', near(t13s, 2407.5), t13s, 2407.5);
+    var t14 = atrRatios(2, 16, 5);
+    ok('atrRatios slDist 2 / atr 5 -> SL 0.4 ATR', near(t14.slAtr, 0.4, 1e-6), t14.slAtr, 0.4);
+    ok('atrRatios tpDist 16 / atr 5 -> TP 3.2 ATR', near(t14.tpAtr, 3.2, 1e-6), t14.tpAtr, 3.2);
+    var t15a, t15b, t15c, threw = false;
+    try {
+      t15a = atrRatios(2, 16, '');
+      t15b = atrRatios(2, 16, 0);
+      t15c = atrRatios(2, 16, NaN);
+    } catch (e) { threw = true; }
+    ok('atrRatios atr empty -> null (no throw)', !threw && t15a === null, t15a, null);
+    ok('atrRatios atr 0 -> null (no throw)', !threw && t15b === null, t15b, null);
+    ok('atrRatios atr NaN -> null (no throw)', !threw && t15c === null, t15c, null);
+
     var failed = results.filter(function (x) { return !x.pass; });
     return { total: results.length, failed: failed.length, results: results, ok: failed.length === 0 };
   }
@@ -598,6 +658,7 @@ var Calc = (function () {
     pl: pl, computeMargin: computeMargin, marginLevel: marginLevel, maxLotByMargin: maxLotByMargin,
     effSlDist: effSlDist, computeLot: computeLot, computeSlFromLot: computeSlFromLot,
     slFromDist: slFromDist, computeTp: computeTp, computeRR: computeRR, computeProfit: computeProfit,
+    atrRatios: atrRatios, slFromAtr: slFromAtr,
     validateDirection: validateDirection, calibrateContractSize: calibrateContractSize,
     computeAll: computeAll, XM_DEFAULTS: XM_DEFAULTS, runSelfTests: runSelfTests
   };
@@ -620,6 +681,8 @@ var state = {
   balance: 100,        /* in display unit */
   riskPct: 2,
   riskMoney: 2,        /* in display unit */
+  atr: null,           /* $/oz from ATR(14); null = empty. NOT persisted (changes daily) */
+  atrK: 1.5,           /* SL-from-ATR multiplier: 1 | 1.5 | 2. Persisted. */
   cfg: {
     symbol: 'GOLDm#', contractSize: 1, minLot: 0.1, lotStep: 0.01, maxLot: 100,
     stopLevel: 0, spread: 0.03, leverage: 1000, unit: 'USD', digits: 2
@@ -727,6 +790,11 @@ function recalc(lastEdited) {
       state.tpMode = 'price';
       break;
 
+    case 'atr':
+      /* ATR is read-only decoration: it never changes lot / SL / TP by itself.
+         (The "SL จาก ATR" buttons go through lastEdited = 'sl' instead.) */
+      break;
+
     case 'rr':
       state.tpMode = 'rr';
       applyTpFromRR();
@@ -753,6 +821,8 @@ function recalc(lastEdited) {
     balanceUsd: balUsd(), riskMoney: riskUsd(),
     minLot: c.minLot, lotStep: c.lotStep, maxLot: c.maxLot, stopLevel: c.stopLevel
   });
+  /* derived ATR ratios (null when no ATR entered) */
+  view.atr = Calc.atrRatios(view.slDist, view.tpDist, state.atr);
   save();
 }
 
@@ -768,7 +838,7 @@ function save() {
       cfgToSave[k] = state.cfg[k];
     }
     localStorage.setItem(LS_KEY, JSON.stringify({
-      balance: state.balance, riskPct: state.riskPct, cfg: cfgToSave
+      balance: state.balance, riskPct: state.riskPct, atrK: state.atrK, cfg: cfgToSave
     }));
   } catch (e) { /* private mode / blocked storage: ignore */ }
 }
@@ -780,6 +850,8 @@ function load() {
     if (o && typeof o === 'object') {
       if (isFinite(o.balance)) state.balance = o.balance;
       if (isFinite(o.riskPct)) state.riskPct = o.riskPct;
+      /* atrK may be absent in an older payload — keep the default then. atr itself is never stored. */
+      if (typeof o.atrK === 'number' && isFinite(o.atrK) && o.atrK > 0) state.atrK = o.atrK;
       if (o.cfg && typeof o.cfg === 'object') {
         for (var k in state.cfg) {
           if (k === 'unit') continue; /* ignore any saved unit from an older payload */
@@ -867,8 +939,11 @@ function render() {
   $('copyBtn').disabled = invalid;
   $('whatIfWrap').classList.toggle('ctlDisabled', invalid);
 
+  /* --- ATR row (advisory only: never feeds isInvalidState) --- */
+  var atrAdvice = renderAtr();
+
   /* warnings */
-  var warns = v.warnings.slice();
+  var warns = v.warnings.slice().concat(atrAdvice);
   if (v.warnings.indexOf('lot ต่ำกว่าขั้นต่ำของโบรก') >= 0 || state.lot <= c.minLot + 1e-9) {
     var lr = Calc.computeLot({
       riskMoney: riskUsd(), slDist: v.slDist, spread: c.spread, contractSize: c.contractSize,
@@ -946,6 +1021,37 @@ function render() {
   setVal($('setSym'), String(c.symbol));
 }
 
+/* --- 3b. ATR row ---
+   Returns the advisory warning lines (may be empty). Purely informational:
+   it never blocks anything and never touches isInvalidState(). */
+function renderAtr() {
+  var a = view.atr;                       /* {slAtr, tpAtr} or null */
+  var advice = [];
+  var atrOk = isFinite(Calc.num(state.atr, NaN)) && Calc.num(state.atr, 0) > 0;
+  var entryOk = isFinite(Calc.num(state.entry, NaN)) && Calc.num(state.entry, 0) > 0;
+
+  setVal($('inAtr'), atrOk ? nf(state.atr, 2) : '');
+
+  function out(el, label, val, cls) {
+    if (!a || !isFinite(val)) { el.hidden = true; el.textContent = ''; return; }
+    el.hidden = false;
+    el.textContent = label + ' = ' + nf(val, 1) + ' ATR';
+    el.className = 'xs mono atrOut ' + cls;
+  }
+  var slAtr = a ? a.slAtr : NaN, tpAtr = a ? a.tpAtr : NaN;
+  out($('atrSlOut'), 'SL', slAtr, slAtr < 0.7 ? 'neg' : (slAtr < 1 ? 'amb' : 'pos'));
+  out($('atrTpOut'), 'TP', tpAtr, tpAtr <= 2.5 ? 'pos' : (tpAtr <= 4 ? 'amb' : 'neg'));
+
+  if (a && isFinite(slAtr) && slAtr < 0.7) advice.push('SL แคบกว่า noise (' + nf(slAtr, 1) + ' ATR)');
+  if (a && isFinite(tpAtr) && tpAtr > 4) advice.push('TP ไกลกว่าที่มักไปถึง (' + nf(tpAtr, 1) + ' ATR)');
+
+  Array.prototype.forEach.call(document.querySelectorAll('[data-atrk]'), function (b) {
+    b.disabled = !(atrOk && entryOk);
+    b.className = Math.abs(Calc.num(b.dataset.atrk, 0) - Calc.num(state.atrK, -1)) < 1e-9 ? 'on' : '';
+  });
+  return advice;
+}
+
 /* --- 6. vertical price ladder --- */
 function renderLadder() {
   var box = $('ladder'), c = state.cfg, v = view;
@@ -1020,7 +1126,9 @@ function summaryText() {
     ' | SL ' + px(state.sl) + ' (' + moneyAscii(-v.realRisk) +
     (isFinite(v.riskPctReal) ? ', ' + nf(v.riskPctReal, 2) + '%' : '') + ')' +
     ' | TP ' + px(state.tp) + ' (' + moneyAscii(v.profit, true) + ')' +
-    ' | RR 1:' + (isFinite(v.rr) ? nf(v.rr, 1) : '-');
+    ' | RR 1:' + (isFinite(v.rr) ? nf(v.rr, 1) : '-') +
+    (v.atr ? ' | ATR ' + nf(state.atr, 2) +
+      ' (SL ' + nf(v.atr.slAtr, 1) + '×, TP ' + nf(v.atr.tpAtr, 1) + '×)' : '');
 }
 function renderCopy() { $('copyOut').textContent = summaryText(); }
 
@@ -1076,6 +1184,27 @@ function initUI() {
     state.slMode = 'dist';
     state.slDistInput = Calc.round(slDistNow(), state.cfg.digits);
     recalc('slDist'); render();
+  });
+
+  /* ATR: empty (or <= 0) clears it back to null; it never resizes anything by itself */
+  $('inAtr').addEventListener('input', function () {
+    var raw = String($('inAtr').value).trim().replace(/,/g, '');
+    var n = parseFloat(raw);
+    state.atr = (raw === '' || !isFinite(n) || n <= 0) ? null : n;
+    recalc('atr'); render();
+  });
+  $('inAtr').addEventListener('blur', function () { recalc('atr'); render(); });
+
+  /* "SL จาก ATR" 1× / 1.5× / 2× — same path as typing an SL price by hand */
+  Array.prototype.forEach.call(document.querySelectorAll('[data-atrk]'), function (b) {
+    b.addEventListener('click', function () {
+      var k = Calc.num(b.dataset.atrk, 1.5);
+      var p = Calc.slFromAtr(state.entry, state.side, state.atr, k);
+      if (!isFinite(p)) return;
+      state.atrK = k;
+      state.sl = p;
+      recalc('sl'); render();
+    });
   });
 
   /* R:R quick buttons */
