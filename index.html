@@ -3,323 +3,343 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="color-scheme" content="dark light">
+<meta name="color-scheme" content="dark">
 <title>XAUUSD Risk Calc — XM Ultra Low Micro</title>
 <style>
-/* ===== theme: dark default, light via prefers-color-scheme ===== */
+/* ===== v2 "Chart-first" — dark only, prototype B tokens ===== */
 :root{
-  --bg:#0e1116; --bg2:#161b22; --bg3:#1d242e; --line:#2b333f;
-  --fg:#e8edf4; --fg2:#9aa7b8; --fg3:#6b7789;
-  --green:#25c26e; --green-d:#0f7a42; --red:#ff5252; --red-d:#8c1f1f;
-  --amber:#ffb020; --blue:#4a9eff;
-  --radius:12px;
-}
-@media (prefers-color-scheme: light){
-  :root{
-    --bg:#f4f6f9; --bg2:#ffffff; --bg3:#eaeef4; --line:#d3dae4;
-    --fg:#161b22; --fg2:#5a6675; --fg3:#8b97a6;
-    --green:#00954d; --green-d:#0f7a42; --red:#d92020; --red-d:#a31414;
-    --amber:#b57500; --blue:#0a68d8;
-  }
+  --bg:#0b0e11; --s1:#141920; --s2:#1b222b; --s3:#232c37; --line:#2b3540;
+  --fg:#e8eef5; --fg2:#8d9aab; --fg3:#5c6a7b;
+  --up:#26a69a; --dn:#ef5350; --amber:#ffb020; --acc:#4a9eff;
+  --peek:50px;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-/* NOTE: do not use overflow-x:hidden on html/body — it breaks position:sticky
-   on the result bar. Horizontal overflow is prevented by the layout itself. */
-html,body{margin:0;padding:0;max-width:100%}
+html,body{height:100%;margin:0;padding:0;overflow:hidden;background:var(--bg)}
 body{
-  background:var(--bg); color:var(--fg);
-  font:15px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans Thai","Sarabun",Roboto,sans-serif;
-  padding-bottom:48px; max-width:520px; margin:0 auto;
+  color:var(--fg);
+  font:14px/1.35 -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans Thai","Sarabun",Roboto,"Helvetica Neue",Arial,sans-serif;
+  font-variant-numeric:tabular-nums; font-feature-settings:"tnum";
 }
-h1{font-size:15px;margin:0;font-weight:600}
-.wrap{padding:0 10px}
-.card{background:var(--bg2);border:1px solid var(--line);border-radius:var(--radius);padding:10px;margin:10px 0;scroll-margin-top:var(--barH,150px)}
-.card h2{font-size:12px;margin:0 0 8px;color:var(--fg2);font-weight:600;letter-spacing:.02em;text-transform:none}
-.row{display:flex;gap:6px;align-items:center}
-.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
-.muted{color:var(--fg2)}
-.small{font-size:11px}
-.xs{font-size:10px}
-.mono{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
-
-/* ===== inputs ===== */
-label.fld{display:block;flex:1;min-width:0}
-label.fld > span{display:block;font-size:10px;color:var(--fg2);margin-bottom:2px}
-input[type=text],input[type=number],select{
-  width:100%;background:var(--bg3);color:var(--fg);border:1px solid var(--line);
-  border-radius:8px;padding:9px 8px;font-size:16px;font-variant-numeric:tabular-nums;
-  outline:none;min-width:0;scroll-margin-top:var(--barH,150px);
-}
-input:focus,select:focus{border-color:var(--blue)}
-input.bad{border-color:var(--red);background:rgba(255,82,82,.10)}
-button{
-  background:var(--bg3);color:var(--fg);border:1px solid var(--line);border-radius:8px;
-  padding:10px 6px;font-size:13px;cursor:pointer;font-family:inherit;
-  touch-action:manipulation;
-}
-button:active{filter:brightness(1.35)}
-button.on{background:var(--blue);border-color:var(--blue);color:#fff}
-button:disabled,input:disabled{opacity:.4;cursor:not-allowed;filter:none}
-.ctlDisabled{opacity:.4;pointer-events:none}
-.step{min-width:0;flex:1;font-variant-numeric:tabular-nums;font-size:12px;padding:10px 2px}
-.quick{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-top:6px}
-.seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
-.seg button{border:0;border-radius:0;flex:1;padding:11px 4px;font-size:11px;background:transparent}
-.seg button.on{background:var(--blue);color:#fff}
-
-/* ===== ATR row ===== */
-.atrOut{white-space:nowrap;font-weight:700}
-#inAtr::placeholder{color:var(--fg3);font-size:13px}
-
-/* ===== sticky result bar ===== */
-#bar{
-  position:sticky;top:0;z-index:50;background:var(--bg2);
-  border-bottom:1px solid var(--line);padding:8px 10px;
-  box-shadow:0 4px 14px rgba(0,0,0,.35);
-}
-#bar.warn{background:linear-gradient(0deg,var(--bg2),var(--bg2)),var(--red);
-  border-bottom-color:var(--red);box-shadow:0 0 0 2px var(--red) inset;}
-.barTop{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
-#lotBig{font-size:30px;font-weight:800;line-height:1;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
-#sideTag{font-size:12px;font-weight:700;padding:2px 6px;border-radius:5px}
-.tagLong{background:rgba(37,194,110,.18);color:var(--green)}
-.tagShort{background:rgba(255,82,82,.18);color:var(--red)}
-.barStats{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:6px}
-.stat{background:var(--bg3);border-radius:7px;padding:4px 5px;min-width:0}
-.stat b{display:block;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.stat i{font-style:normal;font-size:9px;color:var(--fg2);display:block}
-.pos{color:var(--green)} .neg{color:var(--red)} .amb{color:var(--amber)}
-#warnBox{margin-top:6px;background:var(--red-d);color:#fff;border-radius:7px;padding:5px 7px;font-size:11px;line-height:1.35}
-#warnBox:empty{display:none}
-#testBanner{background:var(--red);color:#fff;padding:8px 10px;font-size:12px;font-weight:600}
-
-/* ===== side toggle ===== */
-#sideRow{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}
-#sideRow button{padding:13px 6px;font-size:16px;font-weight:800;letter-spacing:.04em}
-#btnLong.on{background:var(--green);border-color:var(--green);color:#04150c}
-#btnShort.on{background:var(--red);border-color:var(--red);color:#fff}
-
-/* ===== lot slider ===== */
-input[type=range]{width:100%;accent-color:var(--blue);height:34px;margin:2px 0}
-.lotCtl{display:grid;grid-template-columns:44px 1fr 44px;gap:6px;align-items:center}
-.lotCtl button{font-size:20px;font-weight:700;padding:8px 0}
-
-/* ===== ladder ===== */
-#ladder{position:relative;height:190px;margin:6px 0 2px}
-.lRail{position:absolute;left:50%;top:0;bottom:0;width:8px;margin-left:-4px;background:var(--bg3);border-radius:4px}
-.lFill{position:absolute;left:50%;width:8px;margin-left:-4px;border-radius:4px}
-.lMark{position:absolute;left:0;right:0;height:0;}
-.lMark .dot{position:absolute;left:50%;width:14px;height:14px;margin-left:-7px;margin-top:-7px;border-radius:50%;border:2px solid var(--bg2)}
-.lMark .lb{position:absolute;right:52%;transform:translateY(-50%);text-align:right;font-size:11px;white-space:nowrap;font-variant-numeric:tabular-nums}
-.lMark .rb{position:absolute;left:52%;transform:translateY(-50%);text-align:left;font-size:11px;white-space:nowrap;font-variant-numeric:tabular-nums}
-
-/* ===== what-if table ===== */
-table{width:100%;border-collapse:collapse;font-size:12px;font-variant-numeric:tabular-nums}
-th{font-size:10px;color:var(--fg2);font-weight:600;text-align:right;padding:3px 2px}
-th:first-child{text-align:left}
-td{padding:7px 2px;text-align:right;border-top:1px solid var(--line)}
-td:first-child{text-align:left;font-weight:700}
-tr.cur{background:rgba(74,158,255,.14)}
-tbody tr{cursor:pointer}
-
-/* ===== settings ===== */
-details{background:var(--bg2);border:1px solid var(--line);border-radius:var(--radius);margin:10px 0}
-summary{padding:11px 10px;font-size:13px;font-weight:600;cursor:pointer;list-style:none}
-summary::-webkit-details-marker{display:none}
-summary::after{content:"▾";float:right;color:var(--fg2)}
-details[open] summary::after{content:"▴"}
-.setBody{padding:0 10px 10px}
-.setGrid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-.sep{height:1px;background:var(--line);margin:10px 0}
-.actRow{display:flex;gap:6px}
-#copyBtn{flex:1.5;min-width:0;padding:14px 4px;font-size:14px;font-weight:700;background:var(--blue);border-color:var(--blue);color:#fff;white-space:nowrap}
-#jSnapBtn{flex:1;min-width:0;padding:14px 4px;font-size:14px;font-weight:700;white-space:nowrap}
-#copyOut{width:100%;margin-top:6px;font-size:11px;padding:7px;background:var(--bg3);border:1px solid var(--line);border-radius:8px;color:var(--fg2);word-break:break-all;line-height:1.4}
-.foot{text-align:center;color:var(--fg3);font-size:10px;padding:14px 10px 0}
-
-/* ===== journal (phase 2c) ===== */
-/* author display rules below would otherwise beat the UA [hidden] rule */
+::-webkit-scrollbar{width:0;height:0;display:none}
+*{scrollbar-width:none;-ms-overflow-style:none}
+button{font-family:inherit;font-variant-numeric:tabular-nums;color:inherit;background:none;border:0;
+  padding:0;cursor:pointer;touch-action:manipulation}
+button:disabled{opacity:.38;cursor:not-allowed}
+input{font-family:inherit;font-variant-numeric:tabular-nums}
 [hidden]{display:none!important}
-.chip{display:inline-block;font-size:10px;line-height:1.3;padding:3px 7px;border-radius:999px;
-  background:var(--bg3);color:var(--fg2);white-space:nowrap;font-variant-numeric:tabular-nums}
-#wrChip{background:rgba(74,158,255,.18);color:var(--blue);font-weight:700}
-#jErrChip{display:block;margin-top:6px;border-radius:7px;padding:5px 7px;font-size:11px;white-space:normal;
-  background:rgba(255,176,32,.16);color:var(--amber);border:1px solid var(--amber)}
-#toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:200;
-  background:var(--fg);color:var(--bg);padding:10px 15px;border-radius:999px;font-size:13px;font-weight:700;
-  box-shadow:0 6px 20px rgba(0,0,0,.35);pointer-events:none;max-width:90vw;text-align:center}
-.jSec{font-size:12px;margin:0 0 6px;color:var(--fg2);font-weight:600}
-.jRow{border:1px solid var(--line);border-radius:9px;padding:7px;margin-bottom:7px;background:var(--bg3)}
-.jHead{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:12px;margin-bottom:6px;
+.num,.mono{font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.up,.pos{color:var(--up)} .dn,.neg{color:var(--dn)} .amb{color:var(--amber)}
+.mut,.muted{color:var(--fg2)}
+.xs{font-size:10px} .small{font-size:11px}
+.grow{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pill{display:inline-block;font-size:10px;line-height:1.3;padding:3px 7px;border-radius:999px;
+  background:var(--s2);color:var(--fg2);white-space:nowrap;font-weight:700;
   font-variant-numeric:tabular-nums}
+#wrChip{background:rgba(74,158,255,.18);color:var(--acc)}
+.tagLong{background:rgba(38,166,154,.18);color:var(--up)}
+.tagShort{background:rgba(239,83,80,.18);color:var(--dn)}
+
+/* ===== self-test failure banner (stays from v1) ===== */
+#testBanner{position:fixed;top:0;left:0;right:0;z-index:600;background:var(--dn);color:#fff;
+  padding:calc(7px + env(safe-area-inset-top)) 10px 7px;font-size:12px;font-weight:700;line-height:1.4;
+  max-height:38%;overflow-y:auto}
+
+/* ===== main stage: fixed, never scrolls ===== */
+#stage{position:fixed;top:0;left:0;right:0;bottom:0;display:flex;flex-direction:column;overflow:hidden;
+  padding-top:env(safe-area-inset-top);
+  padding-bottom:calc(var(--peek) + env(safe-area-inset-bottom))}
+
+/* --- top row --- */
+.bTop{flex:0 0 auto;display:flex;align-items:center;gap:9px;padding:7px 10px 5px}
+.symBox{flex:0 0 auto;line-height:1.12;text-align:left}
+.symBox b{display:block;font-size:12px;font-weight:800;color:var(--fg2);letter-spacing:.03em}
+.symBox i{display:block;font-style:normal;font-size:9px;color:var(--fg3);font-weight:700}
+/* T4 will drop the session strip in here */
+#sessSlot{flex:0 0 auto}
+.seg{display:flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--s1);flex:1;min-width:0}
+.seg button{flex:1;min-height:44px;font-size:13px;font-weight:800;letter-spacing:.05em;color:var(--fg2)}
+#btnLong.on{background:var(--up);color:#04150f}
+#btnShort.on{background:var(--dn);color:#1a0505}
+
+/* --- ladder hero --- */
+.ldr{position:relative;overflow:hidden;touch-action:none;background:var(--s1);
+  border:1px solid var(--line);border-radius:12px;
+  flex:1 1 auto;min-height:168px;max-height:56%;margin:2px 10px 0}
+.ldRail{position:absolute;top:10px;bottom:10px;width:5px;border-radius:3px;background:var(--s3)}
+.ldSeg{position:absolute;width:5px;border-radius:3px}
+.ldSeg.r{background:rgba(239,83,80,.55)}
+.ldSeg.p{background:rgba(38,166,154,.55)}
+.ldLine{position:absolute;left:0;right:0;height:0}
+.ldRule{position:absolute;left:0;right:6px;top:0;height:0;border-top:1px dashed var(--line)}
+.ldLine.e .ldRule{border-top:1px solid var(--fg3)}
+.ldLine.s .ldRule{border-top:1px solid rgba(239,83,80,.75)}
+.ldLine.t .ldRule{border-top:1px solid rgba(38,166,154,.75)}
+.ldGrip{position:absolute;top:-23px;height:46px;touch-action:none;cursor:grab;display:block;left:0;width:104px}
+.ldGrip::before{content:"";position:absolute;top:17px;height:12px;border-radius:6px;border:2px solid var(--bg);
+  left:11px;width:19px}
+.ldLine.s .ldGrip::before{background:var(--dn)}
+.ldLine.t .ldGrip::before{background:var(--up)}
+.ldLine.e .ldDot{position:absolute;top:-5px;left:16px;width:10px;height:10px;border-radius:50%;
+  background:var(--fg2);border:2px solid var(--bg)}
+.ldr .ldRail,.ldr .ldSeg{left:18px}
+.ldTag{position:absolute;left:110px;transform:translateY(-50%);display:flex;align-items:center;gap:6px;
+  background:rgba(11,14,17,.82);border-radius:8px;padding:3px 5px;white-space:nowrap;max-width:calc(100% - 118px)}
+.ldTag b{font-size:16px;font-weight:800}
+.ldTag s{text-decoration:none;font-size:10px;color:var(--fg2)}
+.ldTag .cp{flex:0 0 44px;min-height:44px;font-size:15px}
+.ldr.dragging .ldTag{background:rgba(11,14,17,.95)}
+
+/* --- 2x2 grid --- */
+.grid2{flex:0 0 auto;display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:8px 10px 4px;margin-top:auto}
+.cell{background:var(--s1);border:1px solid var(--line);border-radius:12px;padding:6px 6px 6px 10px;
+  display:flex;align-items:center;gap:6px;min-width:0}
+.cellVal{flex:1;min-width:0;text-align:left}
+.cellVal i{display:block;font-style:normal;font-size:9px;letter-spacing:.09em;color:var(--fg3);font-weight:800}
+.cellVal b,.cellVal .valBtn{display:block;font-size:22px;font-weight:800;line-height:1.2;text-align:left;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;width:100%}
+.cellVal em{display:block;font-style:normal;font-size:9px;color:var(--fg3)}
+.valBtn::after{content:"✎";font-size:10px;color:var(--fg3);margin-left:6px;vertical-align:middle}
+.lotCell{flex-direction:column;align-items:stretch;gap:5px;padding:6px}
+.lotCell .cellTop{display:flex;align-items:center;gap:6px;padding-left:4px}
+.lotCell .valBtn{min-height:44px;font-size:24px;display:flex;align-items:center}
+.lotStep{display:flex;gap:6px}
+.lotStep button{flex:1;min-height:44px;border-radius:9px;background:var(--s2);border:1px solid var(--line);
+  font-size:20px;font-weight:800;color:var(--fg2)}
+.lotStep button:active{filter:brightness(1.5)}
+.cp{flex:0 0 44px;min-height:44px;border-radius:10px;background:var(--s3);border:1px solid var(--line);
+  color:var(--acc);font-size:16px;display:flex;align-items:center;justify-content:center}
+.cp:active{background:var(--acc);color:#fff}
+
+/* --- chip row + warning strip --- */
+.chipScroll{flex:0 0 auto;display:flex;gap:7px;overflow-x:auto;padding:2px 10px 4px;-webkit-overflow-scrolling:touch}
+.chipScroll::after{content:"";flex:0 0 2px}
+.chip{flex:0 0 auto;min-height:44px;padding:0 13px;border-radius:10px;background:var(--s2);
+  border:1px solid var(--line);color:var(--fg2);font-size:12px;font-weight:700;
+  display:inline-flex;align-items:center;white-space:nowrap}
+.chip.on{background:var(--acc);border-color:var(--acc);color:#fff}
+#warnStrip,#jErrChip{flex:0 0 auto;margin:0 10px 5px;border-radius:9px;padding:6px 9px;font-size:11px;
+  line-height:1.45;max-height:72px;overflow-y:auto;
+  background:rgba(255,176,32,.13);border:1px solid var(--amber);color:var(--amber)}
+#warnStrip.bad{background:rgba(239,83,80,.14);border-color:var(--dn);color:#ffb3b1}
+
+/* ===== bottom sheet ===== */
+.bSheet{position:fixed;left:0;right:0;bottom:0;z-index:40;display:flex;flex-direction:column;
+  background:var(--s1);border-top:1px solid var(--line);border-radius:16px 16px 0 0;
+  box-shadow:0 -10px 30px rgba(0,0,0,.55);max-height:86%;
+  transform:translateY(calc(100% - var(--peek) - env(safe-area-inset-bottom)));
+  transition:transform .22s ease}
+.bSheet.open{transform:translateY(0)}
+.shHandle{flex:0 0 auto;min-height:var(--peek);display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:5px;width:100%;touch-action:none}
+.shHandle span{width:40px;height:4px;border-radius:2px;background:var(--fg3);display:block}
+.shHandle em{font-style:normal;font-size:11px;color:var(--fg2);font-weight:700}
+.shTabs{flex:0 0 auto;display:flex;gap:6px;padding:0 10px 8px}
+.shTabs button{flex:1;min-height:44px;border-radius:10px;background:var(--s2);border:1px solid var(--line);
+  color:var(--fg2);font-size:12px;font-weight:700}
+.shTabs button.on{background:var(--s3);color:#fff;box-shadow:inset 0 -2px 0 var(--acc)}
+.shBody{flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  padding:0 10px calc(18px + env(safe-area-inset-bottom))}
+
+.kv{display:flex;align-items:center;gap:8px;background:var(--s2);border:1px solid var(--line);
+  border-radius:11px;padding:4px 5px 4px 11px;margin-bottom:7px}
+.kv i{font-style:normal;font-size:10px;color:var(--fg3);font-weight:700;flex:0 0 84px}
+.kv .kvv{flex:1;min-width:0;text-align:right;min-height:44px;display:flex;align-items:center;
+  justify-content:flex-end;font-size:16px;font-weight:700;padding-right:8px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+button.kvv{color:var(--fg)}
+button.kvv::after{content:"✎";font-size:11px;color:var(--fg3);margin-left:7px}
+
+.ticket{background:var(--s2);border:1px solid var(--line);border-radius:12px;overflow:hidden;margin:11px 0 8px}
+.tHead{font-size:10px;letter-spacing:.12em;color:var(--fg3);font-weight:800;padding:9px 11px 5px}
+.tRow{display:flex;align-items:center;gap:6px;padding:2px 5px 2px 11px;border-top:1px solid var(--line)}
+.tRow i{font-style:normal;font-size:11px;color:var(--fg2);flex:0 0 84px;font-weight:600}
+.tRow b{flex:1;min-width:0;text-align:right;font-size:17px;font-weight:800;padding-right:6px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tAct{display:flex;gap:7px;padding:8px;border-top:1px solid var(--line)}
+.tAct button{flex:1;min-height:46px;border-radius:10px;font-size:13px;font-weight:800;
+  background:var(--s3);border:1px solid var(--line)}
+#copyAll{background:var(--acc);border-color:var(--acc);color:#fff}
+#copyOut{font-size:10px;color:var(--fg3);line-height:1.55;word-break:break-all;padding:0 11px 10px}
+
+/* ===== settings / calibrate ===== */
+.setGrid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+label.fld{display:block;min-width:0}
+label.fld > span{display:block;font-size:10px;color:var(--fg3);margin-bottom:3px;font-weight:700}
+.setGrid input,.jRow2 input{width:100%;background:var(--s2);color:var(--fg);border:1px solid var(--line);
+  border-radius:9px;padding:11px 9px;font-size:16px;outline:none;min-height:44px}
+input:focus{border-color:var(--acc)}
+.btnWide{width:100%;min-height:46px;margin-top:9px;border-radius:10px;background:var(--s3);
+  border:1px solid var(--line);font-size:13px;font-weight:700}
+.sep{height:1px;background:var(--line);margin:13px 0}
+.secT{font-size:11px;color:var(--fg2);font-weight:700;margin:0 0 6px}
+.hint{font-size:11px;color:var(--fg3);line-height:1.5}
+.ver{text-align:center;color:var(--fg3);font-size:10px;padding:16px 0 4px;letter-spacing:.06em}
+
+/* ===== journal (moved from v1, same ids/logic) ===== */
+.jSec{font-size:12px;margin:0 0 6px;color:var(--fg2);font-weight:700}
+.jRow{border:1px solid var(--line);border-radius:10px;padding:7px;margin-bottom:7px;background:var(--s2)}
+.jHead{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:12px;margin-bottom:6px}
 .jTag{font-size:10px;font-weight:700;padding:2px 5px;border-radius:4px}
 .jBtns{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px}
-.jBtns button{min-height:40px;padding:8px 2px;font-size:12px;font-weight:600}
-.jBtns button.win{color:var(--green)} .jBtns button.loss{color:var(--red)}
+.jBtns button{min-height:44px;padding:8px 2px;font-size:12px;font-weight:700;border-radius:9px;
+  background:var(--s3);border:1px solid var(--line);color:var(--fg2)}
+.jBtns button.win{color:var(--up)} .jBtns button.loss{color:var(--dn)}
 .jRow2{display:flex;gap:5px;margin-top:5px}
-.jRow2 input{flex:1;min-width:0;min-height:40px;font-size:14px;padding:8px}
-.jDel{flex:0 0 46px;min-height:40px;padding:8px 2px;font-size:12px}
+.jRow2 input{flex:1;min-width:0}
+.jDel{flex:0 0 52px;min-height:44px;font-size:12px;border-radius:9px;background:var(--s3);
+  border:1px solid var(--line);color:var(--dn)}
 .jEmpty{color:var(--fg3);font-size:11px;padding:6px 2px}
 .jStatGrid{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:6px}
-.jStat{background:var(--bg3);border-radius:7px;padding:5px 7px;min-width:0}
-.jStat b{display:block;font-size:14px;font-weight:700;font-variant-numeric:tabular-nums;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.jStat i{font-style:normal;font-size:9px;color:var(--fg2);display:block}
-.jLine{font-size:11px;color:var(--fg2);line-height:1.6;font-variant-numeric:tabular-nums}
+.jStat{background:var(--s2);border-radius:9px;padding:6px 8px;min-width:0}
+.jStat b{display:block;font-size:15px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.jStat i{font-style:normal;font-size:9px;color:var(--fg3);display:block}
+.jLine{font-size:11px;color:var(--fg2);line-height:1.65}
 .hRow{display:flex;gap:6px;align-items:center;padding:8px 3px;border-top:1px solid var(--line);
-  font-size:12px;min-height:40px;cursor:pointer;font-variant-numeric:tabular-nums}
-.hRow .grow{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.jDetail{font-size:11px;color:var(--fg2);padding:2px 4px 9px;line-height:1.6;
+  font-size:12px;min-height:44px;cursor:pointer}
+.jDetail{font-size:11px;color:var(--fg2);padding:2px 4px 9px;line-height:1.65;
   border-top:1px dashed var(--line);word-break:break-word}
-.jDetail button{margin-top:6px;min-height:40px;padding:8px 12px;font-size:12px}
-.jTools{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px}
-.jTools button{min-height:44px;font-size:12px;padding:10px 4px}
-#jClear{color:var(--red)}
+.jDetail button{margin-top:6px;min-height:44px;padding:8px 14px;font-size:12px;border-radius:9px;
+  background:var(--s3);border:1px solid var(--line);color:var(--dn)}
+.jTools{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:11px}
+.jTools button{min-height:46px;font-size:12px;padding:10px 4px;border-radius:10px;
+  background:var(--s3);border:1px solid var(--line);font-weight:700}
+#jClear{color:var(--dn)}
+#jSnapBtn{width:100%;min-height:48px;margin-bottom:11px;border-radius:11px;background:var(--acc);
+  border:1px solid var(--acc);color:#fff;font-size:14px;font-weight:800}
+
+/* ===== keypad bottom sheet ===== */
+#kpWrap{position:fixed;inset:0;z-index:400;display:none}
+#kpWrap.on{display:block}
+#kpBack{position:absolute;inset:0;background:rgba(0,0,0,.6)}
+#kp{position:absolute;left:0;right:0;bottom:0;background:var(--s1);border-top:1px solid var(--line);
+  border-radius:16px 16px 0 0;padding:10px 10px calc(12px + env(safe-area-inset-bottom))}
+#kpHead{display:flex;align-items:baseline;gap:10px;padding:2px 4px 8px}
+#kpHead i{font-style:normal;font-size:11px;color:var(--fg2);font-weight:700;letter-spacing:.08em}
+#kpVal{flex:1;text-align:right;font-size:30px;font-weight:800}
+#kpModeRow{display:flex;gap:6px;padding:0 2px 9px}
+#kpModeRow button{flex:1;min-height:44px;border-radius:9px;background:var(--s2);border:1px solid var(--line);
+  color:var(--fg2);font-size:12px;font-weight:700}
+#kpModeRow button.on{background:var(--acc);border-color:var(--acc);color:#fff}
+#kpGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+#kpGrid button{min-height:52px;border-radius:11px;background:var(--s2);border:1px solid var(--line);
+  font-size:19px;font-weight:700}
+#kpGrid button.sm{font-size:13px;color:var(--acc)}
+#kpGrid button.ok{background:var(--acc);color:#fff;font-size:15px;font-weight:800}
+#kpGrid button.ghost{color:var(--fg2);font-size:14px}
+#kpGrid button:active{filter:brightness(1.4)}
+
+/* ===== toast ===== */
+#toast{position:fixed;left:50%;bottom:calc(72px + env(safe-area-inset-bottom));transform:translateX(-50%);
+  z-index:500;background:#f2f6fb;color:#0b0e11;padding:11px 18px;border-radius:999px;font-size:14px;
+  font-weight:800;box-shadow:0 8px 26px rgba(0,0,0,.5);pointer-events:none;max-width:90vw;text-align:center}
 </style>
 </head>
 <body>
 
-<div id="testBanner" style="display:none"></div>
+<div id="testBanner" hidden></div>
 
-<!-- 1. sticky result bar -->
-<div id="bar">
-  <div class="barTop">
-    <span class="small muted">LOT</span>
-    <span id="lotBig" class="mono">0.10</span>
-    <span id="sideTag" class="tagLong">LONG</span>
-    <span id="wrChip" class="chip" hidden></span>
-    <span id="symTag" class="small muted" style="margin-left:auto">GOLDm#</span>
+<div id="stage">
+
+  <div class="bTop">
+    <span class="symBox"><b id="symName">GOLDm#</b><i id="symLev">1:1000</i></span>
+    <!-- T4: session strip goes here -->
+    <span id="sessSlot" hidden></span>
+    <div class="seg">
+      <button id="btnLong" data-side="LONG" class="on">LONG</button>
+      <button id="btnShort" data-side="SHORT">SHORT</button>
+    </div>
+    <span id="wrChip" class="pill" hidden></span>
   </div>
-  <div class="barStats">
-    <div class="stat"><b id="sRisk" class="neg">-</b><i>เสี่ยง (SL)</i></div>
-    <div class="stat"><b id="sRiskPct" class="neg">-</b><i>% พอร์ต</i></div>
-    <div class="stat"><b id="sProfit" class="pos">-</b><i>กำไร (TP)</i></div>
-    <div class="stat"><b id="sRR">-</b><i>R:R</i></div>
+
+  <div class="ldr" id="bLadder"></div>
+
+  <div class="grid2">
+    <div class="cell lotCell">
+      <div class="cellTop">
+        <div class="cellVal"><i>LOT</i><button class="valBtn num" id="lotVal" data-edit="lot">0.39</button></div>
+        <button class="cp" data-copy="lot" aria-label="คัดลอก lot">⧉</button>
+      </div>
+      <div class="lotStep">
+        <button id="lotMinus" aria-label="lot ลดหนึ่งขั้น">−</button>
+        <button id="lotPlus" aria-label="lot เพิ่มหนึ่งขั้น">+</button>
+      </div>
+    </div>
+    <div class="cell">
+      <div class="cellVal"><i>R:R</i><b class="num" id="rrVal">—</b><em id="rrNote"></em></div>
+    </div>
+    <div class="cell">
+      <div class="cellVal"><i>เสีย (SL)</i><b class="num dn" id="riskVal">—</b><em id="riskPctVal"></em></div>
+      <button class="cp" data-copy="risk" aria-label="คัดลอกจำนวนเงินที่เสี่ยง">⧉</button>
+    </div>
+    <div class="cell">
+      <div class="cellVal"><i>ได้ (TP)</i><b class="num up" id="profitVal">—</b><em id="profitNote"></em></div>
+      <button class="cp" data-copy="profit" aria-label="คัดลอกกำไร">⧉</button>
+    </div>
   </div>
-  <div class="barStats" style="grid-template-columns:1fr 1fr">
-    <div class="stat"><b id="sMargin">-</b><i>มาร์จิ้นที่ใช้</i></div>
-    <div class="stat"><b id="sMlevel">-</b><i>Margin level</i></div>
+
+  <div class="chipScroll">
+    <button class="chip" data-rp="0.5">เสี่ยง 0.5%</button>
+    <button class="chip" data-rp="1">1%</button>
+    <button class="chip" data-rp="2">2%</button>
+    <button class="chip" data-rp="3">3%</button>
+    <button class="chip" data-rr="1">TP 1R</button>
+    <button class="chip" data-rr="1.5">1.5R</button>
+    <button class="chip" data-rr="2">2R</button>
+    <button class="chip" data-rr="3">3R</button>
+    <button class="chip" data-atrk="1">ATR 1×</button>
+    <button class="chip" data-atrk="1.5">1.5×</button>
+    <button class="chip" data-atrk="2">2×</button>
   </div>
-  <div id="warnBox"></div>
+
+  <div id="warnStrip" hidden></div>
   <div id="jErrChip" hidden></div>
 </div>
 
-<div class="wrap">
-
-  <!-- 2. LONG / SHORT -->
-  <div id="sideRow">
-    <button id="btnLong" class="on">LONG / ซื้อ</button>
-    <button id="btnShort">SHORT / ขาย</button>
+<!-- ===== bottom sheet ===== -->
+<div class="bSheet" id="bSheet">
+  <button class="shHandle" id="bHandle" aria-label="เปิด/ปิดแผงรายละเอียด"><span></span><em id="shLabel">รายละเอียด · Journal · ตั้งค่า</em></button>
+  <div class="shTabs">
+    <button data-tab="detail" class="on">รายละเอียด</button>
+    <button data-tab="journal" id="tabBtnJournal">Journal</button>
+    <button data-tab="settings">ตั้งค่า</button>
   </div>
+  <div class="shBody" id="shBody">
 
-  <!-- 3. Entry / SL / TP -->
-  <div class="card">
-    <h2>ราคา</h2>
-    <div class="grid3">
-      <label class="fld"><span>Entry เข้า</span><input autocomplete="off" autocorrect="off" spellcheck="false" id="inEntry" type="text" inputmode="decimal"></label>
-      <label class="fld"><span id="lbSl">SL ตัดขาดทุน</span><input autocomplete="off" autocorrect="off" spellcheck="false" id="inSl" type="text" inputmode="decimal"></label>
-      <label class="fld"><span>TP ทำกำไร</span><input autocomplete="off" autocorrect="off" spellcheck="false" id="inTp" type="text" inputmode="decimal"></label>
-    </div>
-    <div class="grid3" style="margin-top:6px">
-      <div class="row"><button class="step" data-stp="entry:-1">−1</button><button class="step" data-stp="entry:-0.1">−.1</button><button class="step" data-stp="entry:0.1">+.1</button><button class="step" data-stp="entry:1">+1</button></div>
-      <div class="row"><button class="step" data-stp="sl:-1">−1</button><button class="step" data-stp="sl:-0.1">−.1</button><button class="step" data-stp="sl:0.1">+.1</button><button class="step" data-stp="sl:1">+1</button></div>
-      <div class="row"><button class="step" data-stp="tp:-1">−1</button><button class="step" data-stp="tp:-0.1">−.1</button><button class="step" data-stp="tp:0.1">+.1</button><button class="step" data-stp="tp:1">+1</button></div>
-    </div>
-    <div style="margin-top:8px" class="row">
-      <span class="xs muted" style="min-width:56px">โหมด SL</span>
-      <div class="seg" style="flex:1">
-        <button id="slModePrice" class="on">ราคา</button>
-        <button id="slModeDist">ระยะ $</button>
+    <!-- ---------- tab 1 : รายละเอียด ---------- -->
+    <section id="tabDetail">
+      <div class="kv"><i>Entry เข้า</i><button class="kvv num" data-edit="entry" id="kvEntry">2400.00</button><button class="cp" data-copy="entry" aria-label="คัดลอก Entry">⧉</button></div>
+      <div class="kv"><i>พอร์ต (USD)</i><button class="kvv num" data-edit="balance" id="kvBal">100.00</button></div>
+      <div class="kv"><i>เสี่ยง (USD)</i><button class="kvv num" data-edit="riskMoney" id="kvRisk">$2.00</button></div>
+      <div class="kv"><i>ATR(14)</i><button class="kvv num" data-edit="atr" id="kvAtr">—</button></div>
+      <div class="kv"><i>margin</i><span class="kvv num" id="kvMargin">—</span></div>
+      <div class="kv"><i>spread ที่ใช้</i><span class="kvv num" id="kvSpread">—</span></div>
+
+      <div class="ticket">
+        <div class="tHead">ORDER TICKET — วางลง MT5 ทีละช่อง</div>
+        <div class="tRow"><i>Symbol</i><b id="tkSym">GOLDm#</b><button class="cp" data-copy="symbol" aria-label="คัดลอก Symbol">⧉</button></div>
+        <div class="tRow"><i>Type</i><b id="tkType">Buy</b><button class="cp" data-copy="type" aria-label="คัดลอก Type">⧉</button></div>
+        <div class="tRow"><i>Volume</i><b class="num" id="tkVol">0.39</b><button class="cp" data-copy="lot" aria-label="คัดลอก Volume">⧉</button></div>
+        <div class="tRow"><i>Price</i><b class="num" id="tkPrice">2400.00</b><button class="cp" data-copy="entry" aria-label="คัดลอก Price">⧉</button></div>
+        <div class="tRow"><i>Stop Loss</i><b class="num dn" id="tkSl">2395.00</b><button class="cp" data-copy="sl" aria-label="คัดลอก Stop Loss">⧉</button></div>
+        <div class="tRow"><i>Take Profit</i><b class="num up" id="tkTp">2410.00</b><button class="cp" data-copy="tp" aria-label="คัดลอก Take Profit">⧉</button></div>
+        <div class="tAct">
+          <button id="copyAll" data-copy="all">คัดลอกทั้งหมด</button>
+          <button id="jSnapBtn2">บันทึกไม้นี้</button>
+        </div>
+        <div id="copyOut" class="mono"></div>
       </div>
-      <span id="slDistInfo" class="xs muted mono" style="min-width:74px;text-align:right"></span>
-    </div>
-    <div class="quick">
-      <button data-rr="1">TP 1R</button><button data-rr="1.5">TP 1.5R</button>
-      <button data-rr="2">TP 2R</button><button data-rr="3">TP 3R</button>
-    </div>
+      <div class="hint">คำนวณและแสดงผลเป็น USD เสมอ · ไม่รวมค่าคอมมิชชั่น/สวอป</div>
+    </section>
 
-    <!-- 3b. ATR (ความผันผวน) -->
-    <div class="sep" style="margin:9px 0 7px"></div>
-    <div class="row" id="atrRow">
-      <span class="xs muted" style="min-width:24px">ATR</span>
-      <input autocomplete="off" autocorrect="off" spellcheck="false" id="inAtr" type="text" inputmode="decimal" placeholder="อ่านจาก ATR(14)" style="flex:1 1 92px;min-width:0">
-      <span id="atrSlOut" class="xs mono atrOut" hidden></span>
-      <span id="atrTpOut" class="xs mono atrOut" hidden></span>
-    </div>
-    <div class="row" style="margin-top:6px">
-      <span class="xs muted" style="min-width:62px">SL จาก ATR</span>
-      <div class="seg" style="flex:1">
-        <button data-atrk="1">1×</button><button data-atrk="1.5">1.5×</button><button data-atrk="2">2×</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- 4. Lot -->
-  <div class="card">
-    <h2>ขนาดออเดอร์ (lot) — ขยับแล้ว SL จะเลื่อนเพื่อคุมความเสี่ยงเท่าเดิม</h2>
-    <div class="lotCtl">
-      <button id="lotMinus">−</button>
-      <input autocomplete="off" autocorrect="off" spellcheck="false" id="inLot" type="text" inputmode="decimal" style="text-align:center;font-weight:700">
-      <button id="lotPlus">+</button>
-    </div>
-    <input autocomplete="off" autocorrect="off" spellcheck="false" id="lotSlider" type="range" min="0.1" max="10" step="0.01" value="0.1">
-    <div class="row small muted" style="justify-content:space-between">
-      <span id="lotMinLbl" class="mono xs">0.10</span>
-      <span id="lotRiskLive" class="mono">เสี่ยงจริง −</span>
-      <span id="lotMaxLbl" class="mono xs">10</span>
-    </div>
-  </div>
-
-  <!-- 5. Risk -->
-  <div class="card">
-    <h2>ความเสี่ยง</h2>
-    <div class="grid3">
-      <label class="fld"><span id="lbBal">พอร์ต (USD)</span><input autocomplete="off" autocorrect="off" spellcheck="false" id="inBal" type="text" inputmode="decimal"></label>
-      <label class="fld"><span>เสี่ยง %</span><input autocomplete="off" autocorrect="off" spellcheck="false" id="inRiskPct" type="text" inputmode="decimal"></label>
-      <label class="fld"><span id="lbRiskMoney">เสี่ยง (USD)</span><input autocomplete="off" autocorrect="off" spellcheck="false" id="inRiskMoney" type="text" inputmode="decimal"></label>
-    </div>
-    <div class="quick">
-      <button data-rp="0.5">0.5%</button><button data-rp="1">1%</button>
-      <button data-rp="2">2%</button><button data-rp="3">3%</button>
-    </div>
-  </div>
-
-  <!-- 6. price ladder -->
-  <div class="card">
-    <h2>แผนภาพราคา</h2>
-    <div id="ladder"><div class="lRail"></div></div>
-  </div>
-
-  <!-- 7. what-if -->
-  <div class="card">
-    <h2>ถ้าเปลี่ยน lot (แตะแถวเพื่อเลือก)</h2>
-    <div id="whatIfWrap" style="overflow-x:auto">
-      <table>
-        <thead><tr><th>lot</th><th>เสีย</th><th>ได้</th><th>% พอร์ต</th><th>margin</th></tr></thead>
-        <tbody id="whatIf"></tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- 8. copy -->
-  <div class="card">
-    <div class="actRow">
-      <button id="copyBtn">คัดลอกสรุปออเดอร์</button>
+    <!-- ---------- tab 2 : Journal ---------- -->
+    <section id="tabJournal" hidden>
       <button id="jSnapBtn">บันทึกไม้นี้</button>
-    </div>
-    <div id="copyOut" class="mono"></div>
-  </div>
 
-  <!-- 8b. journal (phase 2c) -->
-  <details id="jBox">
-    <summary id="jSummary">Journal</summary>
-    <div class="setBody">
       <h2 class="jSec" id="jPendTitle">รอผล</h2>
       <div id="jPend"></div>
 
       <div class="sep"></div>
-      <h2 class="jSec">สถิติ (เฉพาะไม้ที่ปิดแล้ว) <span id="jSmall" class="chip" hidden>ยังน้อย (n&lt;30)</span></h2>
+      <h2 class="jSec">สถิติ (เฉพาะไม้ที่ปิดแล้ว) <span id="jSmall" class="pill" hidden>ยังน้อย (n&lt;30)</span></h2>
       <div id="jStats"></div>
 
       <div class="sep"></div>
@@ -333,13 +353,11 @@ details[open] summary::after{content:"▴"}
         <button id="jClear">ล้างทั้งหมด</button>
       </div>
       <input id="jImpFile" type="file" accept="application/json,.json" hidden>
-    </div>
-  </details>
+    </section>
 
-  <!-- 9. settings -->
-  <details id="setBox">
-    <summary>ตั้งค่าโบรกเกอร์ / Calibrate</summary>
-    <div class="setBody">
+    <!-- ---------- tab 3 : ตั้งค่า ---------- -->
+    <section id="tabSettings" hidden>
+      <h2 class="secT">ตั้งค่าโบรกเกอร์</h2>
       <div class="setGrid">
         <label class="fld"><span>Contract size (oz/lot)</span><input autocomplete="off" autocorrect="off" spellcheck="false" id="setCs" type="text" inputmode="decimal"></label>
         <label class="fld"><span>Spread ($/oz)</span><input autocomplete="off" autocorrect="off" spellcheck="false" id="setSpread" type="text" inputmode="decimal"></label>
@@ -350,23 +368,49 @@ details[open] summary::after{content:"▴"}
         <label class="fld"><span>Leverage 1:</span><input autocomplete="off" autocorrect="off" spellcheck="false" id="setLev" type="text" inputmode="decimal"></label>
         <label class="fld"><span>Symbol</span><input autocomplete="off" autocorrect="off" spellcheck="false" id="setSym" type="text"></label>
       </div>
-      <button id="btnReset" style="width:100%;margin-top:8px">รีเซ็ตเป็นค่า XM Ultra Low Micro</button>
+      <button id="btnReset" class="btnWide">รีเซ็ตเป็นค่า XM Ultra Low Micro</button>
 
       <div class="sep"></div>
-      <h2 style="font-size:12px;margin:0 0 4px;color:var(--fg2)">Calibrate จากออเดอร์จริง</h2>
-      <div class="xs muted" style="margin-bottom:6px">กรอกออเดอร์ที่เปิดอยู่จริง 1 ไม้ แล้วดูว่า contract size ที่แท้จริงเป็นเท่าไหร่</div>
+      <h2 class="secT">Calibrate จากออเดอร์จริง</h2>
+      <div class="hint" style="margin-bottom:7px">กรอกออเดอร์ที่เปิดอยู่จริง 1 ไม้ แล้วดูว่า contract size ที่แท้จริงเป็นเท่าไหร่</div>
       <div class="setGrid">
         <label class="fld"><span>Lot</span><input autocomplete="off" autocorrect="off" spellcheck="false" id="cbLot" type="text" inputmode="decimal" value="0.5"></label>
         <label class="fld"><span>ราคาเปิด</span><input autocomplete="off" autocorrect="off" spellcheck="false" id="cbOpen" type="text" inputmode="decimal" value="2400"></label>
         <label class="fld"><span>ราคาปัจจุบัน</span><input autocomplete="off" autocorrect="off" spellcheck="false" id="cbNow" type="text" inputmode="decimal" value="2403"></label>
         <label class="fld"><span id="lbCbPl">P/L ที่ MT แสดง (USD)</span><input autocomplete="off" autocorrect="off" spellcheck="false" id="cbPl" type="text" inputmode="decimal" value="1.5"></label>
       </div>
-      <div id="cbOut" class="small mono" style="margin-top:8px;color:var(--fg2)"></div>
-      <button id="cbApply" style="width:100%;margin-top:6px">ใช้ค่านี้เป็น contract size</button>
-    </div>
-  </details>
+      <div id="cbOut" class="small mono" style="margin-top:9px;color:var(--fg2)"></div>
+      <button id="cbApply" class="btnWide">ใช้ค่านี้เป็น contract size</button>
 
-  <div class="foot">คำนวณและแสดงผลเป็น USD เสมอ · ไม่รวมค่าคอมมิชชั่น/สวอป</div>
+      <div class="ver">v2.0-beta</div>
+    </section>
+
+  </div>
+</div>
+
+<!-- ===== keypad ===== -->
+<div id="kpWrap">
+  <div id="kpBack"></div>
+  <div id="kp">
+    <div id="kpHead"><i id="kpTitle">ENTRY</i><span id="kpVal" class="num">0</span></div>
+    <div id="kpModeRow" hidden>
+      <button id="kpModePrice" class="on">ราคา SL</button>
+      <button id="kpModeDist">ระยะ $</button>
+    </div>
+    <div id="kpGrid">
+      <button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button>
+      <button class="sm" data-d="1">+1.00</button>
+      <button data-k="4">4</button><button data-k="5">5</button><button data-k="6">6</button>
+      <button class="sm" data-d="-1">−1.00</button>
+      <button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button>
+      <button class="sm" data-d="0.1">+0.10</button>
+      <button data-k="0">0</button><button data-k=".">.</button><button data-k="bs">⌫</button>
+      <button class="sm" data-d="-0.1">−0.10</button>
+      <button class="ghost" data-k="clr">ล้าง</button>
+      <button class="ghost" id="kpCancel">ยกเลิก</button>
+      <button class="ok" id="kpOk" style="grid-column:span 2">ตกลง</button>
+    </div>
+  </div>
 </div>
 
 <div id="toast" hidden></div>
@@ -756,6 +800,33 @@ var Calc = (function () {
     stopLevel: 0, spread: 0.03, leverage: 1000, unit: 'USD', digits: 2
   };
 
+
+  /* ---------- v2 additions (pure, appended — nothing above was changed) ---------- */
+
+  /* snap a price to the nearest tick (0.01 by default). NaN in -> NaN out. */
+  function snapPrice(v, tick) {
+    var p = num(v, NaN), t = num(tick, 0.01);
+    if (!isFinite(p) || !(t > 0)) return NaN;
+    return r(Math.round(p / t) * t, 8);
+  }
+
+  /*
+    bandPrice: rubber-band a dragged SL/TP handle so it can never cross — or
+    even touch — the entry line. `which` is 'sl' or 'tp'.
+      LONG : sl stays below entry, tp stays above
+      SHORT: sl stays above entry, tp stays below
+    The result is snapped to 0.01 (the price tick). Never throws.
+  */
+  function bandPrice(which, side, entry, price, gap) {
+    var e = num(entry, NaN), p = num(price, NaN), g = Math.abs(num(gap, 0.01));
+    if (!isFinite(e) || !isFinite(p)) return NaN;
+    if (!(g > 0)) g = 0.01;
+    var isShort = String(side).toUpperCase() === 'SHORT';
+    var mustBeBelow = String(which) === 'sl' ? !isShort : isShort;
+    if (mustBeBelow) { if (p > e - g) p = e - g; }
+    else { if (p < e + g) p = e + g; }
+    return snapPrice(p, 0.01);
+  }
   /* ---------- self tests ---------- */
   function runSelfTests() {
     var results = [];
@@ -918,6 +989,31 @@ var Calc = (function () {
     ok('cohort winRate hidden while n < 5 in that bucket',
       jCohort.tightWinRate === null && jCohort.wideWinRate === null, jCohort.tightWinRate, null);
 
+
+    /* ----- v2 shell B: snap + rubber band (ladder drag) ----- */
+    var s1 = snapPrice(2392.4967, 0.01);
+    ok('snapPrice(2392.4967) = 2392.50', near(s1, 2392.5, 1e-9), s1, 2392.5);
+    var s2 = snapPrice(2392.5049, 0.01);
+    ok('snapPrice(2392.5049) = 2392.50', near(s2, 2392.5, 1e-9), s2, 2392.5);
+    var s3 = snapPrice('', 0.01);
+    ok('snapPrice("") -> NaN (no throw)', !isFinite(s3), s3, NaN);
+
+    var b1 = bandPrice('sl', 'LONG', 2400, 2392.5);
+    ok('bandPrice LONG sl below entry is untouched', near(b1, 2392.5, 1e-9), b1, 2392.5);
+    var b2 = bandPrice('sl', 'LONG', 2400, 2405);
+    ok('bandPrice LONG sl above entry -> 2399.99', near(b2, 2399.99, 1e-9), b2, 2399.99);
+    var b3 = bandPrice('tp', 'LONG', 2400, 2390);
+    ok('bandPrice LONG tp below entry -> 2400.01', near(b3, 2400.01, 1e-9), b3, 2400.01);
+    var b4 = bandPrice('sl', 'SHORT', 2400, 2390);
+    ok('bandPrice SHORT sl below entry -> 2400.01', near(b4, 2400.01, 1e-9), b4, 2400.01);
+    var b5 = bandPrice('tp', 'SHORT', 2400, 2412);
+    ok('bandPrice SHORT tp above entry -> 2399.99', near(b5, 2399.99, 1e-9), b5, 2399.99);
+    var b6 = bandPrice('sl', 'SHORT', 2400, 2407.5);
+    ok('bandPrice SHORT sl above entry is untouched', near(b6, 2407.5, 1e-9), b6, 2407.5);
+    var b7 = bandPrice('sl', 'LONG', NaN, 2390);
+    ok('bandPrice with NaN entry -> NaN (no throw)', !isFinite(b7), b7, NaN);
+    var b8 = bandPrice('sl', 'LONG', 2400, 2392.4967);
+    ok('bandPrice snaps the dragged price to 0.01', near(b8, 2392.5, 1e-9), b8, 2392.5);
     var failed = results.filter(function (x) { return !x.pass; });
     return { total: results.length, failed: failed.length, results: results, ok: failed.length === 0 };
   }
@@ -932,9 +1028,10 @@ var Calc = (function () {
     realizedR: realizedR, journalStats: journalStats,
     validateDirection: validateDirection, calibrateContractSize: calibrateContractSize,
     computeAll: computeAll, XM_DEFAULTS: XM_DEFAULTS, runSelfTests: runSelfTests
+,
+    snapPrice: snapPrice, bandPrice: bandPrice
   };
 })();
-
 /* ============================================================
    PART 2 — state.js : single state, single recalc()
    ============================================================ */
@@ -1223,9 +1320,21 @@ function journalFind(id) {
 }
 
 /* ============================================================
-   PART 3 — ui.js : bind + render
+   PART 2b — save() throttle while a ladder handle is being dragged.
+   recalc() (above, verbatim from v1) calls save() on every change; a drag
+   fires dozens of those per second and localStorage is synchronous. The
+   suspend flag only defers the write — it is always flushed on pointerup.
+   ============================================================ */
+var __save0 = save, __suspendSave = false;
+save = function () { if (__suspendSave) return; __save0(); };
+
+/* ============================================================
+   PART 3 — ui.js : bind + render  ("Chart-first" shell, v2)
    ============================================================ */
 var $ = function (id) { return document.getElementById(id); };
+var $q = function (s, r) { return (r || document).querySelector(s); };
+var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+var DASH = '—';
 
 function nf(v, d) {
   if (!isFinite(v)) return '-';
@@ -1263,225 +1372,55 @@ function isInvalidState() {
   if (!(isFinite(e) && e > 0)) return true;
   if (!(isFinite(s) && s > 0)) return true;
   if (!(isFinite(t) && t > 0)) return true;
+  if (!view || !view.dir) return true;   /* before the first recalc() */
   return !view.dir.ok;
 }
 
-function render() {
-  var c = state.cfg, v = view;
-  var invalid = isInvalidState();
-
-  /* --- sticky bar --- */
-  $('lotBig').textContent = invalid ? '—' : nf(state.lot, 2);
-  var tag = $('sideTag');
-  tag.textContent = state.side;
-  tag.className = state.side === 'SHORT' ? 'tagShort' : 'tagLong';
-  $('symTag').textContent = c.symbol + ' · 1:' + nf(c.leverage, 0);
-  $('sRisk').textContent = invalid ? '—' : money(-v.realRisk);
-  $('sRiskPct').textContent = invalid ? '—' : (isFinite(v.riskPctReal) ? nf(v.riskPctReal, 2) + '%' : '-');
-  $('sProfit').textContent = invalid ? '—' : money(v.profit, true);
-  $('sRR').textContent = invalid ? '—' : (isFinite(v.rr) ? '1:' + nf(v.rr, 2) : '-');
-  $('sMargin').textContent = invalid ? '—' : money(v.margin);
-  var ml = $('sMlevel');
-  if (invalid) { ml.textContent = '—'; ml.className = ''; }
-  else if (!isFinite(v.marginLevel)) { ml.textContent = '∞'; ml.className = ''; }
-  else {
-    ml.textContent = nf(v.marginLevel, 0) + '%';
-    ml.className = v.marginLevel < 100 ? 'neg' : (v.marginLevel < 300 ? 'amb' : 'pos');
+/* ============================================================
+   copy — every price / lot / amount is copyable on its own
+   ============================================================ */
+function legacyCopy(text) {
+  var ta = document.createElement('textarea');
+  ta.value = text;
+  ta.setAttribute('readonly', '');
+  ta.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;padding:0;border:0';
+  document.body.appendChild(ta);
+  var ok = false;
+  try {
+    ta.focus(); ta.select();
+    if (ta.setSelectionRange) ta.setSelectionRange(0, ta.value.length);
+    ok = document.execCommand('copy');
+  } catch (e) { ok = false; }
+  try { document.body.removeChild(ta); } catch (e) { }
+  return ok;
+}
+function copyText(text) {
+  if (text === '' || text === null || text === undefined) return;
+  var done = function () { toast('คัดลอก ' + text); };
+  var p = null;
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) p = navigator.clipboard.writeText(text);
+  } catch (e) { p = null; }
+  if (p && typeof p.then === 'function') p.then(done, function () { legacyCopy(text); done(); });
+  else { legacyCopy(text); done(); }
+}
+function copyValue(key) {
+  var v = view;
+  switch (key) {
+    case 'entry': return px(state.entry);
+    case 'sl': return px(state.sl);
+    case 'tp': return px(state.tp);
+    case 'lot': return nf(state.lot, 2);
+    case 'risk': return nf(Math.abs(Calc.num(v.realRisk, NaN)), 2);
+    case 'profit': return nf(Math.abs(Calc.num(v.profit, NaN)), 2);
+    case 'symbol': return String(state.cfg.symbol);
+    case 'type': return state.side === 'SHORT' ? 'Sell' : 'Buy';
+    case 'all': return summaryText();
   }
-  $('sProfit').className = invalid ? '' : ((isFinite(v.profit) && v.profit < 0) ? 'neg' : 'pos');
-
-  /* disable controls that only make sense for a valid, sized trade */
-  $('lotSlider').disabled = invalid;
-  $('lotMinus').disabled = invalid;
-  $('lotPlus').disabled = invalid;
-  $('copyBtn').disabled = invalid;
-  $('jSnapBtn').disabled = invalid;   /* same gate: never snapshot a meaningless setup */
-  $('whatIfWrap').classList.toggle('ctlDisabled', invalid);
-
-  /* --- ATR row (advisory only: never feeds isInvalidState) --- */
-  var atrAdvice = renderAtr();
-
-  /* warnings */
-  var warns = v.warnings.slice().concat(atrAdvice);
-  if (v.warnings.indexOf('lot ต่ำกว่าขั้นต่ำของโบรก') >= 0 || state.lot <= c.minLot + 1e-9) {
-    var lr = Calc.computeLot({
-      riskMoney: riskUsd(), slDist: v.slDist, spread: c.spread, contractSize: c.contractSize,
-      lotStep: c.lotStep, minLot: c.minLot, maxLot: c.maxLot
-    });
-    if (lr.belowMin) {
-      warns.push('เสี่ยงน้อยสุดที่เปิดได้ (' + nf(c.minLot, 2) + ' lot) = ' + money(lr.minRisk));
-    }
-  }
-  $('warnBox').innerHTML = warns.map(function (w) { return '⚠ ' + w; }).join('<br>');
-  $('bar').className = warns.length ? 'warn' : '';
-
-  /* --- journal (renders before --barH is measured: both chips live in the bar) --- */
-  renderJournal();
-
-  /* keep focused inputs clear of the sticky bar even when it grows with warning lines */
-  document.documentElement.style.setProperty('--barH', ($('bar').offsetHeight + 12) + 'px');
-
-  /* --- side --- */
-  $('btnLong').className = state.side === 'LONG' ? 'on' : '';
-  $('btnShort').className = state.side === 'SHORT' ? 'on' : '';
-
-  /* --- prices --- */
-  setVal($('inEntry'), px(state.entry));
-  if (state.slMode === 'dist') {
-    $('lbSl').textContent = 'SL ระยะ ($)';
-    setVal($('inSl'), nf(state.slDistInput, c.digits));
-  } else {
-    $('lbSl').textContent = 'SL ตัดขาดทุน';
-    setVal($('inSl'), px(state.sl));
-  }
-  setVal($('inTp'), px(state.tp));
-  $('inSl').className = v.dir.slOk ? '' : 'bad';
-  $('inTp').className = v.dir.tpOk ? '' : 'bad';
-  $('slModePrice').className = state.slMode === 'price' ? 'on' : '';
-  $('slModeDist').className = state.slMode === 'dist' ? 'on' : '';
-  $('slDistInfo').textContent = state.slMode === 'dist'
-    ? 'SL ' + px(state.sl)
-    : 'ระยะ ' + nf(v.slDist, 2) + '$';
-  Array.prototype.forEach.call(document.querySelectorAll('[data-rr]'), function (b) {
-    b.className = (state.tpMode === 'rr' && Math.abs(Calc.num(b.dataset.rr, 0) - state.rr) < 1e-9) ? 'on' : '';
-  });
-
-  /* --- lot --- */
-  setVal($('inLot'), nf(state.lot, 2));
-  var capMargin = Calc.maxLotByMargin(balUsd(), state.entry, c.contractSize, c.leverage, c.lotStep);
-  var sMax = Math.min(c.maxLot, capMargin > c.minLot ? capMargin : c.minLot * 10);
-  if (!(sMax > c.minLot)) sMax = c.minLot + c.lotStep * 10;
-  var sl = $('lotSlider');
-  sl.min = c.minLot; sl.max = Calc.round(sMax, 2); sl.step = c.lotStep;
-  if (document.activeElement !== sl) sl.value = Math.min(state.lot, sMax);
-  $('lotMinLbl').textContent = 'min ' + nf(c.minLot, 2);
-  $('lotMaxLbl').textContent = 'max ' + nf(sMax, 2);
-  $('lotRiskLive').innerHTML = 'เสี่ยงจริง <b class="neg">' + money(-v.realRisk) + '</b>';
-
-  /* --- risk --- */
-  $('lbBal').textContent = 'พอร์ต (USD)';
-  $('lbRiskMoney').textContent = 'เสี่ยง (USD)';
-  $('lbCbPl').textContent = 'P/L ที่ MT แสดง (USD)';
-  setVal($('inBal'), nf(state.balance, 2));
-  setVal($('inRiskPct'), nf(state.riskPct, 2));
-  setVal($('inRiskMoney'), nf(state.riskMoney, 2));
-  Array.prototype.forEach.call(document.querySelectorAll('[data-rp]'), function (b) {
-    b.className = Math.abs(Calc.num(b.dataset.rp, 0) - Calc.num(state.riskPct, -1)) < 1e-9 ? 'on' : '';
-  });
-
-  renderLadder();
-  renderWhatIf();
-  renderCopy();
-
-  /* --- settings --- */
-  setVal($('setCs'), String(c.contractSize));
-  setVal($('setSpread'), String(c.spread));
-  setVal($('setMin'), String(c.minLot));
-  setVal($('setStep'), String(c.lotStep));
-  setVal($('setMax'), String(c.maxLot));
-  setVal($('setStopLv'), String(c.stopLevel));
-  setVal($('setLev'), String(c.leverage));
-  setVal($('setSym'), String(c.symbol));
+  return '';
 }
 
-/* --- 3b. ATR row ---
-   Returns the advisory warning lines (may be empty). Purely informational:
-   it never blocks anything and never touches isInvalidState(). */
-function renderAtr() {
-  var a = view.atr;                       /* {slAtr, tpAtr} or null */
-  var advice = [];
-  var atrOk = isFinite(Calc.num(state.atr, NaN)) && Calc.num(state.atr, 0) > 0;
-  var entryOk = isFinite(Calc.num(state.entry, NaN)) && Calc.num(state.entry, 0) > 0;
-
-  setVal($('inAtr'), atrOk ? nf(state.atr, 2) : '');
-
-  function out(el, label, val, cls) {
-    if (!a || !isFinite(val)) { el.hidden = true; el.textContent = ''; return; }
-    el.hidden = false;
-    el.textContent = label + ' = ' + nf(val, 1) + ' ATR';
-    el.className = 'xs mono atrOut ' + cls;
-  }
-  var slAtr = a ? a.slAtr : NaN, tpAtr = a ? a.tpAtr : NaN;
-  out($('atrSlOut'), 'SL', slAtr, slAtr < 0.7 ? 'neg' : (slAtr < 1 ? 'amb' : 'pos'));
-  out($('atrTpOut'), 'TP', tpAtr, tpAtr <= 2.5 ? 'pos' : (tpAtr <= 4 ? 'amb' : 'neg'));
-
-  if (a && isFinite(slAtr) && slAtr < 0.7) advice.push('SL แคบกว่า noise (' + nf(slAtr, 1) + ' ATR)');
-  if (a && isFinite(tpAtr) && tpAtr > 4) advice.push('TP ไกลกว่าที่มักไปถึง (' + nf(tpAtr, 1) + ' ATR)');
-
-  Array.prototype.forEach.call(document.querySelectorAll('[data-atrk]'), function (b) {
-    b.disabled = !(atrOk && entryOk);
-    b.className = Math.abs(Calc.num(b.dataset.atrk, 0) - Calc.num(state.atrK, -1)) < 1e-9 ? 'on' : '';
-  });
-  return advice;
-}
-
-/* --- 6. vertical price ladder --- */
-function renderLadder() {
-  var box = $('ladder'), c = state.cfg, v = view;
-  box.innerHTML = '<div class="lRail"></div>';
-  var e = Calc.num(state.entry, NaN), s = Calc.num(state.sl, NaN), t = Calc.num(state.tp, NaN);
-  var pts = [];
-  if (isFinite(s)) pts.push(s); if (isFinite(e)) pts.push(e); if (isFinite(t)) pts.push(t);
-  if (pts.length < 2) return;
-  var lo = Math.min.apply(null, pts), hi = Math.max.apply(null, pts);
-  if (hi - lo < 1e-9) return;
-  var H = box.clientHeight || 190, pad = 14;
-  function y(p) { return pad + (hi - p) / (hi - lo) * (H - pad * 2); }
-
-  function fill(p1, p2, color) {
-    var a = y(p1), b = y(p2);
-    var d = document.createElement('div');
-    d.className = 'lFill';
-    d.style.top = Math.min(a, b) + 'px';
-    d.style.height = Math.abs(a - b) + 'px';
-    d.style.background = color;
-    box.appendChild(d);
-  }
-  if (isFinite(e) && isFinite(t)) fill(e, t, 'var(--green)');
-  if (isFinite(e) && isFinite(s)) fill(e, s, 'var(--red)');
-
-  function mark(p, color, left, right) {
-    var m = document.createElement('div');
-    m.className = 'lMark';
-    m.style.top = y(p) + 'px';
-    m.innerHTML = '<span class="dot" style="background:' + color + '"></span>' +
-      '<span class="lb" style="color:' + color + '">' + left + '</span>' +
-      '<span class="rb muted">' + right + '</span>';
-    box.appendChild(m);
-  }
-  if (isFinite(t)) mark(t, 'var(--green)', 'TP ' + px(t), money(v.profit, true));
-  if (isFinite(e)) mark(e, 'var(--blue)', 'Entry ' + px(e), nf(state.lot, 2) + ' lot');
-  if (isFinite(s)) mark(s, 'var(--red)', 'SL ' + px(s), money(-v.realRisk));
-}
-
-/* --- 7. what-if table --- */
-function renderWhatIf() {
-  var c = state.cfg, v = view, tb = $('whatIf');
-  tb.innerHTML = '';
-  var rows = [];
-  for (var i = -2; i <= 2; i++) {
-    var l = Calc.round(state.lot + i * c.lotStep, 8);
-    if (l < c.minLot - 1e-9 || l > c.maxLot + 1e-9) continue;
-    rows.push(Calc.round(l, 8));
-  }
-  rows.forEach(function (l) {
-    var risk = l * v.effSlDist * c.contractSize;
-    var prof = isFinite(v.tpDist) ? l * (v.tpDist - c.spread) * c.contractSize : NaN;
-    var mg = Calc.computeMargin(state.entry, l, c.contractSize, c.leverage);
-    var pct = balUsd() > 0 ? risk / balUsd() * 100 : NaN;
-    var tr = document.createElement('tr');
-    if (Math.abs(l - state.lot) < 1e-9) tr.className = 'cur';
-    tr.innerHTML = '<td>' + nf(l, 2) + '</td>' +
-      '<td class="neg">' + money(-risk) + '</td>' +
-      '<td class="pos">' + money(prof, true) + '</td>' +
-      '<td>' + (isFinite(pct) ? nf(pct, 2) + '%' : '-') + '</td>' +
-      '<td class="muted">' + money(mg) + '</td>';
-    tr.addEventListener('click', function () { state.lot = l; recalc('lot'); render(); });
-    tb.appendChild(tr);
-  });
-}
-
-/* --- 8. copy summary --- */
+/* the v1 one-line summary, unchanged (now lives in the ticket card) */
 function summaryText() {
   var c = state.cfg, v = view;
   return (state.side === 'SHORT' ? 'SELL' : 'BUY') + ' ' + c.symbol + ' ' + nf(state.lot, 2) +
@@ -1493,8 +1432,479 @@ function summaryText() {
     (v.atr ? ' | ATR ' + nf(state.atr, 2) +
       ' (SL ' + nf(v.atr.slAtr, 1) + '×, TP ' + nf(v.atr.tpAtr, 1) + '×)' : '');
 }
-function renderCopy() { $('copyOut').textContent = summaryText(); }
 
+/* ============================================================
+   price ladder — pointer events (touch + mouse), rubber-banded
+   ============================================================ */
+var LAD = null;
+
+function makeLadder(el) {
+  el.innerHTML =
+    '<div class="ldRail"></div>' +
+    '<div class="ldSeg r"></div><div class="ldSeg p"></div>' +
+    '<div class="ldLine e"><span class="ldRule"></span><span class="ldDot"></span><span class="ldTag"></span></div>' +
+    '<div class="ldLine s" data-h="sl"><span class="ldRule"></span><span class="ldTag"></span><span class="ldGrip" aria-label="ลาก SL"></span></div>' +
+    '<div class="ldLine t" data-h="tp"><span class="ldRule"></span><span class="ldTag"></span><span class="ldGrip" aria-label="ลาก TP"></span></div>';
+  var L = {
+    el: el, drag: null,
+    seg: { r: $q('.ldSeg.r', el), p: $q('.ldSeg.p', el) },
+    line: { e: $q('.ldLine.e', el), s: $q('.ldLine.s', el), t: $q('.ldLine.t', el) },
+    tag: { e: $q('.ldLine.e .ldTag', el), s: $q('.ldLine.s .ldTag', el), t: $q('.ldLine.t .ldTag', el) }
+  };
+  LAD = L;
+  bindLadder(L);
+  return L;
+}
+
+/* the visible price window. Frozen while a handle is being dragged so the
+   handle tracks the finger instead of the scale sliding under it. */
+function ldRange() {
+  if (LAD && LAD.drag) return LAD.drag.range;
+  var pts = [];
+  [state.entry, state.sl, state.tp].forEach(function (p) {
+    var n = Calc.num(p, NaN);
+    if (isFinite(n)) pts.push(n);
+  });
+  if (!pts.length) return { lo: 0, hi: 1 };
+  var lo = Math.min.apply(null, pts), hi = Math.max.apply(null, pts);
+  var span = hi - lo;
+  if (!(span > 0)) span = 1;
+  var pad = span * 0.22;
+  return { lo: lo - pad, hi: hi + pad };
+}
+function ldY(price, H) { var R = ldRange(); return (R.hi - price) / (R.hi - R.lo) * H; }
+function ldPrice(y, H) { var R = ldRange(); return R.hi - (y / H) * (R.hi - R.lo); }
+
+function paintLadder() {
+  var L = LAD; if (!L) return;
+  var H = L.el.clientHeight;
+  if (!H) return;
+  var v = view, invalid = isInvalidState();
+  var e = Calc.num(state.entry, NaN), s = Calc.num(state.sl, NaN), t = Calc.num(state.tp, NaN);
+  if (!isFinite(e) || !isFinite(s) || !isFinite(t)) { e = isFinite(e) ? e : 0; s = isFinite(s) ? s : e; t = isFinite(t) ? t : e; }
+  var ye = ldY(e, H), ys = ldY(s, H), yt = ldY(t, H);
+  L.line.e.style.top = ye + 'px';
+  L.line.s.style.top = ys + 'px';
+  L.line.t.style.top = yt + 'px';
+  L.seg.r.style.top = Math.min(ye, ys) + 'px';
+  L.seg.r.style.height = Math.abs(ye - ys) + 'px';
+  L.seg.p.style.top = Math.min(ye, yt) + 'px';
+  L.seg.p.style.height = Math.abs(ye - yt) + 'px';
+
+  var a = v.atr;
+  var slAtrTxt = (a && isFinite(a.slAtr)) ? ' · ' + nf(a.slAtr, 1) + ' ATR' : '';
+  var tpAtrTxt = (a && isFinite(a.tpAtr)) ? ' · ' + nf(a.tpAtr, 1) + ' ATR' : '';
+  var dis = invalid ? ' disabled' : '';
+
+  L.tag.e.innerHTML = '<b class="mut num">' + px(state.entry) + '</b>' +
+    '<s>margin ' + (invalid ? DASH : money(v.margin)) + '</s>' +
+    '<button class="cp" data-copy="entry" aria-label="คัดลอก Entry"' + dis + '>⧉</button>';
+  L.tag.s.innerHTML = '<b class="dn num">' + px(state.sl) + '</b>' +
+    '<s class="dn">' + (invalid ? DASH : money(-v.realRisk)) + slAtrTxt + '</s>' +
+    '<button class="cp" data-copy="sl" aria-label="คัดลอก SL"' + dis + '>⧉</button>';
+  L.tag.t.innerHTML = '<b class="up num">' + px(state.tp) + '</b>' +
+    '<s class="up">' + (invalid ? DASH : money(v.profit, true)) + tpAtrTxt + '</s>' +
+    '<button class="cp" data-copy="tp" aria-label="คัดลอก TP"' + dis + '>⧉</button>';
+}
+
+/* apply a dragged y position to SL or TP */
+function ladderApply(which, y) {
+  var L = LAD; if (!L || !L.drag) return;
+  var raw = ldPrice(y, L.drag.H);
+  var p = Calc.bandPrice(which, state.side, state.entry, raw, 0.01);
+  if (!isFinite(p)) return;
+  if (which === 'sl') {
+    if (p === state.sl) return;
+    state.sl = p; recalc('sl');          /* risk $ is the anchor -> lot follows */
+  } else {
+    if (p === state.tp) return;
+    state.tp = p; recalc('tp');          /* R:R and profit follow */
+  }
+  renderStage();
+}
+
+function bindLadder(L) {
+  $$('.ldGrip', L.el).forEach(function (g) {
+    var which = g.parentNode.getAttribute('data-h');
+    g.addEventListener('pointerdown', function (e) {
+      L.drag = { which: which, range: ldRange(), H: L.el.clientHeight, id: e.pointerId };
+      __suspendSave = true;
+      L.el.classList.add('dragging');
+      try { g.setPointerCapture(e.pointerId); } catch (err) { }
+      e.preventDefault(); e.stopPropagation();
+    });
+    g.addEventListener('pointermove', function (e) {
+      if (!L.drag || L.drag.id !== e.pointerId) return;
+      var rect = L.el.getBoundingClientRect();
+      var y = e.clientY - rect.top;
+      if (y < 0) y = 0;
+      if (y > L.drag.H) y = L.drag.H;
+      ladderApply(L.drag.which, y);
+      e.preventDefault(); e.stopPropagation();
+    });
+    var end = function (e) {
+      if (!L.drag) return;
+      L.drag = null;                                  /* scale is live again */
+      L.el.classList.remove('dragging');
+      __suspendSave = false; save();                  /* one write per drag */
+      try { g.releasePointerCapture(e.pointerId); } catch (err) { }
+      render();
+    };
+    g.addEventListener('pointerup', end);
+    g.addEventListener('pointercancel', end);
+  });
+}
+
+/* ============================================================
+   render — renderStage() is the fixed main stage (also used mid-drag),
+   renderSheet() is everything inside the bottom sheet.
+   ============================================================ */
+function render() { renderStage(); renderSheet(); }
+
+/* v1's ATR advisory lines, verbatim strings. Purely informational: never
+   blocks anything, never touches isInvalidState(). */
+function atrAdvice() {
+  var a = view.atr, out = [];
+  if (a && isFinite(a.slAtr) && a.slAtr < 0.7) out.push('SL แคบกว่า noise (' + nf(a.slAtr, 1) + ' ATR)');
+  if (a && isFinite(a.tpAtr) && a.tpAtr > 4) out.push('TP ไกลกว่าที่มักไปถึง (' + nf(a.tpAtr, 1) + ' ATR)');
+  return out;
+}
+
+function renderStage() {
+  var c = state.cfg, v = view;
+  var invalid = isInvalidState();
+
+  $('symName').textContent = c.symbol;
+  $('symLev').textContent = '1:' + nf(c.leverage, 0);
+  $('btnLong').className = state.side === 'LONG' ? 'on' : '';
+  $('btnShort').className = state.side === 'SHORT' ? 'on' : '';
+
+  /* --- 2x2 grid --- */
+  $('lotVal').textContent = invalid ? DASH : nf(state.lot, 2);
+  $('rrVal').textContent = invalid ? DASH : (isFinite(v.rr) ? '1:' + nf(v.rr, 2) : DASH);
+  $('rrNote').textContent = invalid ? '' : (isFinite(v.slDist) ? 'SL ' + nf(v.slDist, 2) + '$' : '');
+  $('riskVal').textContent = invalid ? DASH : money(-v.realRisk);
+  $('riskPctVal').textContent = (!invalid && isFinite(v.riskPctReal)) ? nf(v.riskPctReal, 2) + '% ของพอร์ต' : '';
+  $('profitVal').textContent = invalid ? DASH : money(v.profit, true);
+  $('profitVal').className = 'num ' + (invalid ? '' : ((isFinite(v.profit) && v.profit < 0) ? 'dn' : 'up'));
+  $('profitNote').textContent = (!invalid && isFinite(v.tpDist)) ? 'TP ' + nf(v.tpDist, 2) + '$' : '';
+
+  /* --- chips --- */
+  var atrOk = isFinite(Calc.num(state.atr, NaN)) && Calc.num(state.atr, 0) > 0;
+  var entryOk = isFinite(Calc.num(state.entry, NaN)) && Calc.num(state.entry, 0) > 0;
+  $$('[data-rp]').forEach(function (b) {
+    b.classList.toggle('on', Math.abs(Calc.num(b.getAttribute('data-rp'), 0) - Calc.num(state.riskPct, -1)) < 1e-9);
+  });
+  $$('[data-rr]').forEach(function (b) {
+    b.classList.toggle('on', state.tpMode === 'rr' &&
+      Math.abs(Calc.num(b.getAttribute('data-rr'), 0) - Calc.num(state.rr, -1)) < 1e-9);
+  });
+  $$('[data-atrk]').forEach(function (b) {
+    b.disabled = !(atrOk && entryOk);
+    b.classList.toggle('on', atrOk &&
+      Math.abs(Calc.num(b.getAttribute('data-atrk'), 0) - Calc.num(state.atrK, -1)) < 1e-9);
+  });
+
+  /* --- warnings (v1 rules, non-locking) --- */
+  var advice = atrAdvice();
+  var warns = v.warnings.slice().concat(advice);
+  if (v.warnings.indexOf('lot ต่ำกว่าขั้นต่ำของโบรก') >= 0 || state.lot <= c.minLot + 1e-9) {
+    var lr = Calc.computeLot({
+      riskMoney: riskUsd(), slDist: v.slDist, spread: c.spread, contractSize: c.contractSize,
+      lotStep: c.lotStep, minLot: c.minLot, maxLot: c.maxLot
+    });
+    if (lr.belowMin) {
+      warns.push('เสี่ยงน้อยสุดที่เปิดได้ (' + nf(c.minLot, 2) + ' lot) = ' + money(lr.minRisk));
+    }
+  }
+  var hard = !v.dir.ok || advice.length > 0 ||
+    v.warnings.indexOf('มาร์จิ้นไม่พอ เปิดออเดอร์นี้ไม่ได้') >= 0;
+  var ws = $('warnStrip');
+  if (warns.length) {
+    ws.hidden = false;
+    ws.className = hard ? 'bad' : '';
+    ws.innerHTML = warns.map(function (w) { return '⚠ ' + w; }).join('<br>');
+  } else { ws.hidden = true; ws.innerHTML = ''; }
+
+  /* --- invalid-state gate: blank results above, copy off --- */
+  $$('[data-copy]').forEach(function (b) { b.disabled = invalid; });
+  $('lotMinus').disabled = invalid;
+  $('lotPlus').disabled = invalid;
+  if ($('jSnapBtn')) $('jSnapBtn').disabled = invalid;
+  if ($('jSnapBtn2')) $('jSnapBtn2').disabled = invalid;
+
+  paintLadder();
+}
+
+function renderSheet() {
+  var c = state.cfg, v = view, invalid = isInvalidState();
+
+  $('kvEntry').textContent = px(state.entry);
+  $('kvBal').textContent = nf(state.balance, 2);
+  $('kvRisk').textContent = money(riskUsd()) + ' (' + nf(state.riskPct, 2) + '%)';
+  $('kvAtr').textContent = (isFinite(Calc.num(state.atr, NaN)) && Calc.num(state.atr, 0) > 0)
+    ? nf(state.atr, 2) : DASH;
+  $('kvMargin').textContent = invalid ? DASH
+    : money(v.margin) + ' · ML ' + (isFinite(v.marginLevel) ? nf(v.marginLevel, 0) + '%' : '∞');
+  $('kvSpread').textContent = nf(c.spread, 2) + ' $/oz';
+
+  $('tkSym').textContent = c.symbol;
+  $('tkType').textContent = state.side === 'SHORT' ? 'Sell' : 'Buy';
+  $('tkVol').textContent = invalid ? DASH : nf(state.lot, 2);
+  $('tkPrice').textContent = px(state.entry);
+  $('tkSl').textContent = px(state.sl);
+  $('tkTp').textContent = px(state.tp);
+  $('copyOut').textContent = invalid
+    ? 'ยังคัดลอกไม่ได้ — ตรวจ Entry / SL / TP ให้ถูกทิศก่อน'
+    : summaryText();
+
+  renderJournal();
+
+  setVal($('setCs'), String(c.contractSize));
+  setVal($('setSpread'), String(c.spread));
+  setVal($('setMin'), String(c.minLot));
+  setVal($('setStep'), String(c.lotStep));
+  setVal($('setMax'), String(c.maxLot));
+  setVal($('setStopLv'), String(c.stopLevel));
+  setVal($('setLev'), String(c.leverage));
+  setVal($('setSym'), String(c.symbol));
+  renderCalib();
+}
+
+/* ============================================================
+   bottom sheet — tap the handle to toggle, drag it up / down
+   ============================================================ */
+var sheetOpen = false, curTab = 'detail';
+
+function setSheet(open) {
+  sheetOpen = !!open;
+  $('bSheet').classList.toggle('open', sheetOpen);
+  $('shLabel').textContent = sheetOpen ? 'ปิดแผง' : 'รายละเอียด · Journal · ตั้งค่า';
+  if (sheetOpen) render();
+}
+function setTab(name) {
+  curTab = name;
+  $$('.shTabs button').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-tab') === name); });
+  $('tabDetail').hidden = name !== 'detail';
+  $('tabJournal').hidden = name !== 'journal';
+  $('tabSettings').hidden = name !== 'settings';
+  $('shBody').scrollTop = 0;
+  render();
+}
+function setJTabLabel(openCount) {
+  var b = $('tabBtnJournal');
+  if (b) b.textContent = openCount ? 'Journal (' + openCount + ')' : 'Journal';
+}
+
+function initSheet() {
+  var sh = $('bSheet'), h = $('bHandle'), st = null, lastPtr = 0;
+  h.addEventListener('pointerdown', function (e) {
+    st = { y: e.clientY, moved: 0, id: e.pointerId, was: sheetOpen };
+    try { h.setPointerCapture(e.pointerId); } catch (err) { }
+  });
+  h.addEventListener('pointermove', function (e) {
+    if (!st || st.id !== e.pointerId) return;
+    st.moved = e.clientY - st.y;
+    e.preventDefault();
+  });
+  var end = function (e) {
+    if (!st) return;
+    var d = st.moved, was = st.was;
+    st = null; lastPtr = Date.now();
+    try { h.releasePointerCapture(e.pointerId); } catch (err) { }
+    if (d < -28) setSheet(true);
+    else if (d > 28) setSheet(false);
+    else setSheet(!was);
+  };
+  h.addEventListener('pointerup', end);
+  h.addEventListener('pointercancel', end);
+  /* keyboard / synthetic clicks still work; a real tap already went through
+     the pointer path above, so ignore the click it also produces */
+  h.addEventListener('click', function () {
+    if (Date.now() - lastPtr < 600) return;
+    setSheet(!sheetOpen);
+  });
+}
+
+/* ============================================================
+   keypad bottom sheet — entry / sl / tp / lot / balance / risk$ / atr
+   ============================================================ */
+var KP = { key: null, buf: '', dist: false };
+var KP_META = {
+  entry: { t: 'ENTRY ราคาเข้า', get: function () { return px(state.entry); } },
+  sl: { t: 'SL ตัดขาดทุน', get: function () { return px(state.sl); } },
+  tp: { t: 'TP ทำกำไร', get: function () { return px(state.tp); } },
+  lot: { t: 'LOT (ขนาดออเดอร์)', get: function () { return nf(state.lot, 2); } },
+  balance: { t: 'พอร์ต (USD)', get: function () { return nf(state.balance, 2); } },
+  riskMoney: { t: 'เสี่ยง (USD)', get: function () { return nf(state.riskMoney, 2); } },
+  atr: { t: 'ATR(14)', get: function () { return (isFinite(Calc.num(state.atr, NaN)) && state.atr > 0) ? nf(state.atr, 2) : ''; } }
+};
+function kpPaint() { $('kpVal').textContent = KP.buf === '' ? '0' : KP.buf; }
+function kpOpen(key) {
+  var m = KP_META[key]; if (!m) return;
+  KP.key = key; KP.dist = false; KP.buf = String(m.get());
+  $('kpTitle').textContent = m.t;
+  $('kpModeRow').hidden = key !== 'sl';
+  $('kpModePrice').className = 'on';
+  $('kpModeDist').className = '';
+  kpPaint();
+  $('kpWrap').classList.add('on');
+}
+function kpClose() { $('kpWrap').classList.remove('on'); KP.key = null; }
+function kpKey(k) {
+  if (k === 'bs') KP.buf = KP.buf.slice(0, -1);
+  else if (k === 'clr') KP.buf = '';
+  else if (k === '.') { if (KP.buf.indexOf('.') < 0) KP.buf = (KP.buf || '0') + '.'; }
+  else { if (KP.buf === '0') KP.buf = ''; KP.buf += k; }
+  kpPaint();
+}
+function kpDelta(d) {
+  var v = parseFloat(KP.buf);
+  if (!isFinite(v)) v = 0;
+  KP.buf = (Math.round((v + d) * 100) / 100).toFixed(2);
+  kpPaint();
+}
+/* SL only: type a distance in $ instead of a price (replaces v1's SL mode row) */
+function kpSetDist(on) {
+  if (KP.key !== 'sl' || KP.dist === on) return;
+  var v = parseFloat(KP.buf), c = state.cfg;
+  if (on) {
+    var d = isFinite(v) ? Math.abs(Calc.num(state.entry, 0) - v)
+      : Math.abs(Calc.num(state.entry, 0) - Calc.num(state.sl, 0));
+    KP.buf = nf(d, c.digits);
+    $('kpTitle').textContent = 'SL ระยะ ($)';
+  } else {
+    var p = isFinite(v) ? Calc.slFromDist(state.side, state.entry, v) : Calc.num(state.sl, 0);
+    KP.buf = nf(p, c.digits);
+    $('kpTitle').textContent = 'SL ตัดขาดทุน';
+  }
+  KP.dist = on;
+  $('kpModePrice').className = on ? '' : 'on';
+  $('kpModeDist').className = on ? 'on' : '';
+  kpPaint();
+}
+/*
+  Apply exactly what was typed — a value that makes the setup invalid is NOT
+  silently blocked or clamped; it goes in and the gate / warning strip say so.
+*/
+function kpOk() {
+  var key = KP.key, raw = String(KP.buf).trim(), v = parseFloat(raw), c = state.cfg;
+  if (key === 'atr') {
+    state.atr = (raw === '' || !isFinite(v) || v <= 0) ? null : v;
+    recalc('atr');
+  } else if (isFinite(v)) {
+    switch (key) {
+      case 'entry': state.entry = Calc.round(v, c.digits); recalc('entry'); break;
+      case 'sl':
+        if (KP.dist) { state.slDistInput = Calc.round(v, c.digits); recalc('slDist'); }
+        else { state.sl = Calc.round(v, c.digits); recalc('sl'); }
+        break;
+      case 'tp': state.tp = Calc.round(v, c.digits); recalc('tp'); break;
+      case 'lot': state.lot = v; recalc('lot'); break;              /* SL moves, risk $ fixed */
+      case 'balance': state.balance = Calc.round(v, 2); recalc('balance'); break;
+      case 'riskMoney': state.riskMoney = Calc.round(v, 2); recalc('riskMoney'); break;
+    }
+  }
+  kpClose();
+  render();
+}
+
+/* ============================================================
+   bindings — handlers only set state + call recalc/render
+   ============================================================ */
+function setSide(s) {
+  if (s !== 'LONG' && s !== 'SHORT') return;
+  if (s === state.side) return;
+  state.side = s; recalc('side'); render();
+}
+function applyAtrK(k) {
+  var p = Calc.slFromAtr(state.entry, state.side, state.atr, k);
+  if (!isFinite(p)) { toast('ใส่ค่า ATR(14) ก่อน'); return; }
+  state.atrK = k;
+  state.sl = p;
+  recalc('sl'); render();                 /* same path as typing an SL by hand */
+}
+
+function initUI() {
+  document.addEventListener('click', function (e) {
+    var t = e.target, el;
+    if (!t || !t.closest) return;
+    if ((el = t.closest('[data-copy]'))) { if (!el.disabled) copyText(copyValue(el.getAttribute('data-copy'))); return; }
+    if ((el = t.closest('[data-edit]'))) { kpOpen(el.getAttribute('data-edit')); return; }
+    if ((el = t.closest('[data-side]'))) { setSide(el.getAttribute('data-side')); return; }
+    if ((el = t.closest('[data-rr]'))) { state.rr = Calc.num(el.getAttribute('data-rr'), 2); recalc('rr'); render(); return; }
+    if ((el = t.closest('[data-rp]'))) { state.riskPct = Calc.num(el.getAttribute('data-rp'), 1); recalc('riskPct'); render(); return; }
+    if ((el = t.closest('[data-atrk]'))) { applyAtrK(Calc.num(el.getAttribute('data-atrk'), 1.5)); return; }
+    if ((el = t.closest('[data-tab]'))) { setTab(el.getAttribute('data-tab')); return; }
+    if ((el = t.closest('[data-k]'))) { kpKey(el.getAttribute('data-k')); return; }
+    if ((el = t.closest('[data-d]'))) { kpDelta(parseFloat(el.getAttribute('data-d'))); return; }
+  });
+
+  $('kpOk').addEventListener('click', kpOk);
+  $('kpCancel').addEventListener('click', kpClose);
+  $('kpBack').addEventListener('click', kpClose);
+  $('kpModePrice').addEventListener('click', function () { kpSetDist(false); });
+  $('kpModeDist').addEventListener('click', function () { kpSetDist(true); });
+
+  $('lotMinus').addEventListener('click', function () {
+    state.lot = Calc.round(state.lot - state.cfg.lotStep, 8); recalc('lot'); render();
+  });
+  $('lotPlus').addEventListener('click', function () {
+    state.lot = Calc.round(state.lot + state.cfg.lotStep, 8); recalc('lot'); render();
+  });
+  $('jSnapBtn2').addEventListener('click', jSnapshot);
+
+  /* settings */
+  bindCfg('setCs', 'contractSize'); bindCfg('setSpread', 'spread');
+  bindCfg('setMin', 'minLot'); bindCfg('setStep', 'lotStep');
+  bindCfg('setMax', 'maxLot'); bindCfg('setStopLv', 'stopLevel');
+  bindCfg('setLev', 'leverage');
+  $('setSym').addEventListener('input', function () {
+    state.cfg.symbol = $('setSym').value || 'GOLDm#'; recalc('settings'); render();
+  });
+  $('btnReset').addEventListener('click', function () {
+    var d = Calc.XM_DEFAULTS;
+    for (var k in d) if (Object.prototype.hasOwnProperty.call(d, k)) state.cfg[k] = d[k];
+    recalc('settings'); render();
+  });
+
+  /* calibrate */
+  ['cbLot', 'cbOpen', 'cbNow', 'cbPl'].forEach(function (id) {
+    $(id).addEventListener('input', renderCalib);
+  });
+  $('cbApply').addEventListener('click', function () {
+    var cs = calibValue();
+    if (isFinite(cs) && cs > 0) { state.cfg.contractSize = cs; recalc('settings'); render(); }
+  });
+
+  initSheet();
+}
+
+function bindCfg(id, key) {
+  var el = $(id);
+  el.addEventListener('input', function () {
+    var n = parseFloat(String(el.value).replace(/,/g, ''));
+    if (!isFinite(n)) return;
+    state.cfg[key] = n; recalc('settings'); render();
+  });
+  el.addEventListener('blur', function () { recalc('settings'); render(); });
+}
+
+function calibValue() {
+  return Calc.calibrateContractSize({
+    lot: parseFloat($('cbLot').value),
+    openPrice: parseFloat($('cbOpen').value),
+    currentPrice: parseFloat($('cbNow').value),
+    plUsd: Calc.toUsd(parseFloat($('cbPl').value), state.cfg.unit)
+  });
+}
+function renderCalib() {
+  var cs = calibValue();
+  $('cbOut').innerHTML = isFinite(cs)
+    ? 'contract size ที่คำนวณย้อนได้ = <b>' + nf(cs, 4) + '</b> oz/lot' +
+    (Math.abs(cs - state.cfg.contractSize) < 1e-6 ? ' <span class="pos">(ตรงกับที่ตั้งไว้)</span>' : ' <span class="amb">(ต่างจากที่ตั้งไว้ ' + nf(state.cfg.contractSize, 4) + ')</span>')
+    : 'กรอกให้ครบและราคาต้องต่างกัน';
+}
 /* ============================================================
    --- 8b. journal (phase 2c) : UI only, all maths live in Calc ---
    ============================================================ */
@@ -1611,7 +2021,7 @@ function renderJournal() {
   else { ec.hidden = true; ec.textContent = ''; }
 
   var open = journal.filter(function (t) { return t.status === 'open'; });
-  $('jSummary').textContent = open.length ? 'Journal (รอผล ' + open.length + ')' : 'Journal';
+  setJTabLabel(open.length);   /* v2: the sheet tab carries the pending count */
 
   renderJPending(open);
   renderJStats(st);
@@ -1865,199 +2275,46 @@ function initJournalUI() {
 }
 
 /* ============================================================
-   bindings — handlers only set state + call recalc/render
-   ============================================================ */
-function bindNum(id, key, ev) {
-  var el = $(id);
-  el.addEventListener('input', function () {
-    var n = parseFloat(String(el.value).replace(/,/g, ''));
-    if (!isFinite(n)) { return; }
-    if (key) state[key] = n;
-    recalc(ev); render();
-  });
-  el.addEventListener('blur', function () { recalc(ev); render(); });
-}
-
-function initUI() {
-  /* side */
-  $('btnLong').addEventListener('click', function () { state.side = 'LONG'; recalc('side'); render(); });
-  $('btnShort').addEventListener('click', function () { state.side = 'SHORT'; recalc('side'); render(); });
-
-  /* prices */
-  bindNum('inEntry', 'entry', 'entry');
-  $('inSl').addEventListener('input', function () {
-    var n = parseFloat(String($('inSl').value).replace(/,/g, ''));
-    if (!isFinite(n)) return;
-    if (state.slMode === 'dist') { state.slDistInput = n; recalc('slDist'); }
-    else { state.sl = n; recalc('sl'); }
-    render();
-  });
-  $('inSl').addEventListener('blur', function () { recalc(state.slMode === 'dist' ? 'slDist' : 'sl'); render(); });
-  bindNum('inTp', 'tp', 'tp');
-
-  /* steppers */
-  Array.prototype.forEach.call(document.querySelectorAll('[data-stp]'), function (b) {
-    b.addEventListener('click', function () {
-      var p = b.dataset.stp.split(':'), f = p[0], d = parseFloat(p[1]);
-      if (f === 'sl' && state.slMode === 'dist') {
-        state.slDistInput = Calc.round(Calc.num(state.slDistInput, 0) + d, state.cfg.digits);
-        recalc('slDist');
-      } else {
-        state[f] = Calc.round(Calc.num(state[f], 0) + d, state.cfg.digits);
-        recalc(f);
-      }
-      render();
-    });
-  });
-
-  /* SL mode */
-  $('slModePrice').addEventListener('click', function () { state.slMode = 'price'; recalc('sl'); render(); });
-  $('slModeDist').addEventListener('click', function () {
-    state.slMode = 'dist';
-    state.slDistInput = Calc.round(slDistNow(), state.cfg.digits);
-    recalc('slDist'); render();
-  });
-
-  /* ATR: empty (or <= 0) clears it back to null; it never resizes anything by itself */
-  $('inAtr').addEventListener('input', function () {
-    var raw = String($('inAtr').value).trim().replace(/,/g, '');
-    var n = parseFloat(raw);
-    state.atr = (raw === '' || !isFinite(n) || n <= 0) ? null : n;
-    recalc('atr'); render();
-  });
-  $('inAtr').addEventListener('blur', function () { recalc('atr'); render(); });
-
-  /* "SL จาก ATR" 1× / 1.5× / 2× — same path as typing an SL price by hand */
-  Array.prototype.forEach.call(document.querySelectorAll('[data-atrk]'), function (b) {
-    b.addEventListener('click', function () {
-      var k = Calc.num(b.dataset.atrk, 1.5);
-      var p = Calc.slFromAtr(state.entry, state.side, state.atr, k);
-      if (!isFinite(p)) return;
-      state.atrK = k;
-      state.sl = p;
-      recalc('sl'); render();
-    });
-  });
-
-  /* R:R quick buttons */
-  Array.prototype.forEach.call(document.querySelectorAll('[data-rr]'), function (b) {
-    b.addEventListener('click', function () { state.rr = Calc.num(b.dataset.rr, 2); recalc('rr'); render(); });
-  });
-
-  /* lot */
-  $('lotSlider').addEventListener('input', function () {
-    state.lot = Calc.num($('lotSlider').value, state.lot); recalc('lot'); render();
-  });
-  bindNum('inLot', 'lot', 'lot');
-  $('lotMinus').addEventListener('click', function () {
-    state.lot = Calc.round(state.lot - state.cfg.lotStep, 8); recalc('lot'); render();
-  });
-  $('lotPlus').addEventListener('click', function () {
-    state.lot = Calc.round(state.lot + state.cfg.lotStep, 8); recalc('lot'); render();
-  });
-
-  /* risk */
-  bindNum('inBal', 'balance', 'balance');
-  bindNum('inRiskPct', 'riskPct', 'riskPct');
-  bindNum('inRiskMoney', 'riskMoney', 'riskMoney');
-  Array.prototype.forEach.call(document.querySelectorAll('[data-rp]'), function (b) {
-    b.addEventListener('click', function () { state.riskPct = Calc.num(b.dataset.rp, 1); recalc('riskPct'); render(); });
-  });
-
-  /* copy */
-  $('copyBtn').addEventListener('click', function () {
-    var txt = summaryText(), done = function () {
-      $('copyBtn').textContent = 'คัดลอกแล้ว ✓';
-      setTimeout(function () { $('copyBtn').textContent = 'คัดลอกสรุปออเดอร์'; }, 1400);
-    };
-    try {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(txt).then(done, function () { legacyCopy(txt); done(); });
-      } else { legacyCopy(txt); done(); }
-    } catch (e) { legacyCopy(txt); done(); }
-  });
-
-  /* settings */
-  bindCfg('setCs', 'contractSize'); bindCfg('setSpread', 'spread');
-  bindCfg('setMin', 'minLot'); bindCfg('setStep', 'lotStep');
-  bindCfg('setMax', 'maxLot'); bindCfg('setStopLv', 'stopLevel');
-  bindCfg('setLev', 'leverage');
-  $('setSym').addEventListener('input', function () {
-    state.cfg.symbol = $('setSym').value || 'GOLDm#'; recalc('settings'); render();
-  });
-  $('btnReset').addEventListener('click', function () {
-    var d = Calc.XM_DEFAULTS;
-    for (var k in d) if (Object.prototype.hasOwnProperty.call(d, k)) state.cfg[k] = d[k];
-    recalc('settings'); render();
-  });
-
-  /* calibrate */
-  ['cbLot', 'cbOpen', 'cbNow', 'cbPl'].forEach(function (id) {
-    $(id).addEventListener('input', renderCalib);
-  });
-  $('cbApply').addEventListener('click', function () {
-    var cs = calibValue();
-    if (isFinite(cs) && cs > 0) { state.cfg.contractSize = cs; recalc('settings'); render(); renderCalib(); }
-  });
-}
-
-function legacyCopy(txt) {
-  var ta = document.createElement('textarea');
-  ta.value = txt; ta.style.position = 'fixed'; ta.style.opacity = '0';
-  document.body.appendChild(ta); ta.select();
-  try { document.execCommand('copy'); } catch (e) { }
-  document.body.removeChild(ta);
-}
-
-function bindCfg(id, key) {
-  var el = $(id);
-  el.addEventListener('input', function () {
-    var n = parseFloat(String(el.value).replace(/,/g, ''));
-    if (!isFinite(n)) return;
-    state.cfg[key] = n; recalc('settings'); render();
-  });
-  el.addEventListener('blur', function () { recalc('settings'); render(); });
-}
-
-function calibValue() {
-  return Calc.calibrateContractSize({
-    lot: parseFloat($('cbLot').value),
-    openPrice: parseFloat($('cbOpen').value),
-    currentPrice: parseFloat($('cbNow').value),
-    plUsd: Calc.toUsd(parseFloat($('cbPl').value), state.cfg.unit)
-  });
-}
-function renderCalib() {
-  var cs = calibValue();
-  $('cbOut').innerHTML = isFinite(cs)
-    ? 'contract size ที่คำนวณย้อนได้ = <b>' + nf(cs, 4) + '</b> oz/lot' +
-    (Math.abs(cs - state.cfg.contractSize) < 1e-6 ? ' <span class="pos">(ตรงกับที่ตั้งไว้)</span>' : ' <span class="amb">(ต่างจากที่ตั้งไว้ ' + nf(state.cfg.contractSize, 4) + ')</span>')
-    : 'กรอกให้ครบและราคาต้องต่างกัน';
-}
-
-/* ============================================================
    boot
    ============================================================ */
 (function boot() {
   testReport = Calc.runSelfTests();
   if (!testReport.ok) {
     var b = $('testBanner');
-    b.style.display = 'block';
+    b.hidden = false;
     b.textContent = '⚠ SELF-TEST ไม่ผ่าน ' + testReport.failed + '/' + testReport.total +
       ' ข้อ: ' + testReport.results.filter(function (x) { return !x.pass; })
         .map(function (x) { return x.name; }).join(' · ') + ' — อย่าเชื่อตัวเลขบนหน้านี้';
   }
   load();
   journalLoad();      /* separate key: a failure here only raises a chip */
+  makeLadder($('bLadder'));
   initUI();
   initJournalUI();
-  recalc('init');
+  recalc('init');          /* view must exist before anything renders */
+  setSheet(false);
+  setTab('detail');
   render();
-  renderCalib();
+  /* the ladder needs a real height before its first useful paint */
+  requestAnimationFrame(function () { paintLadder(); });
+  window.addEventListener('resize', function () { paintLadder(); });
+  window.addEventListener('orientationchange', function () { setTimeout(paintLadder, 120); });
+
   /* debug hooks (also used by the browser verification pass) */
   window.__tests = testReport;
-  window.__get = function () { return { state: state, view: view, journal: journal, journalErr: journalErr }; };
+  window.__get = function () {
+    return {
+      state: state, view: view, journal: journal, journalErr: journalErr,
+      invalid: isInvalidState(), sheetOpen: sheetOpen, tab: curTab
+    };
+  };
   window.__stats = function () { return Calc.journalStats(journal); };
+  window.__ui = {
+    setSheet: setSheet, setTab: setTab, render: render,
+    kp: KP, kpOpen: kpOpen, kpOk: kpOk, kpSet: function (s) { KP.buf = String(s); kpPaint(); },
+    kpDist: kpSetDist, copyValue: copyValue, summaryText: summaryText,
+    ladder: function () { return LAD; }
+  };
 })();
 </script>
 </body>
